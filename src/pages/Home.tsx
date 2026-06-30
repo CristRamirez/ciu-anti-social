@@ -19,6 +19,7 @@ export function Home() {
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [tagFilter, setTagFilter] = useState<string>("");
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +98,10 @@ export function Home() {
     return posts.filter((p) => p.tags?.some((t) => t._id === tagFilter));
   }, [posts, tagFilter]);
 
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [sortMode, tagFilter]);
+
   const sortedPosts = useMemo(() => {
     const copy = [...filteredPosts];
     if (sortMode === "popular") {
@@ -144,13 +149,24 @@ export function Home() {
       {sortedPosts.length === 0 ? (
         <p className="muted">No hay posts todavía.</p>
       ) : (
-        <ul className="feed-list">
-          {sortedPosts.map((p) => (
-            <li key={p._id}>
-              <PostCard post={p} commentsCount={commentCounts[p._id] ?? 0} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="feed-list">
+            {sortedPosts.slice(0, visibleCount).map((p) => (
+              <li key={p._id}>
+                <PostCard post={p} commentsCount={commentCounts[p._id] ?? 0} />
+              </li>
+            ))}
+          </ul>
+          {sortedPosts.length > visibleCount && (
+            <button
+              type="button"
+              className="btn btn-ghost feed-load-more"
+              onClick={() => setVisibleCount((n) => n + 10)}
+            >
+              Cargar más ({sortedPosts.length - visibleCount} restantes)
+            </button>
+          )}
+        </>
       )}
     </div>
   );

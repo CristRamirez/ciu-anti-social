@@ -147,6 +147,11 @@ code {
   font-size: 0.9rem;
 }
 
+.feed-load-more {
+  margin: 16px auto 0;
+  display: block;
+}
+
 .feed-list {
   list-style: none;
   margin: 0;
