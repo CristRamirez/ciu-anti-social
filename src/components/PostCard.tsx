@@ -25,7 +25,6 @@ function getAvatarLetter(user: Post["user"]): string {
   return nick.charAt(0).toUpperCase() || "?";
 }
 
-
 function getOwnerId(user: Post["user"]): string {
   if (typeof user === "string") return user;
   return user?._id ?? "";
@@ -43,19 +42,24 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!editing) return;
+    if (!editing && !menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+      if (editing && cardRef.current && !cardRef.current.contains(e.target as Node)) {
         setEditing(false);
         setEditText(post.texto);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [editing, post.texto]);
+  }, [editing, menuOpen, post.texto]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -90,16 +94,46 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
           <span className="post-nick">@{getOwnerNick(owner)}</span>
           <span className="post-date muted">{relativeTime(fecha)}</span>
         </div>
-        {isOwner && !editing && (
+
+        <div className="post-menu-wrap" ref={menuRef}>
           <button
             type="button"
-            className="post-edit-btn"
-            onClick={() => { setEditText(post.texto); setEditing(true); }}
-            title="Editar"
+            className="post-menu-btn"
+            onClick={() => setMenuOpen((o) => !o)}
+            title="Opciones"
           >
-            ✏️
+            ···
           </button>
-        )}
+          {menuOpen && (
+            <div className="post-menu-dropdown">
+              <button
+                type="button"
+                className="post-menu-item"
+                onClick={() => { setMenuOpen(false); onVerMas?.(post._id); }}
+              >
+                Ver más
+              </button>
+              {isOwner && (
+                <>
+                  <button
+                    type="button"
+                    className="post-menu-item"
+                    onClick={() => { setMenuOpen(false); setEditText(post.texto); setEditing(true); }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="post-menu-item post-menu-item--danger"
+                    onClick={() => { setMenuOpen(false); setConfirmDelete(true); }}
+                  >
+                    Eliminar
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </header>
 
       {urls.length > 0 && <ImageCarousel urls={urls} height={460} />}
@@ -138,25 +172,6 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
         <span className="muted">
           {commentsCount} {commentsCount === 1 ? "comentario" : "comentarios"}
         </span>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {isOwner && (
-            <button
-              type="button"
-              className="post-delete-btn"
-              onClick={() => setConfirmDelete(true)}
-              title="Eliminar"
-            >
-              🗑️
-            </button>
-          )}
-          <button
-            type="button"
-            className="post-ver-mas"
-            onClick={() => onVerMas?.(post._id)}
-          >
-            Ver más
-          </button>
-        </div>
       </footer>
 
       <ConfirmDialog
