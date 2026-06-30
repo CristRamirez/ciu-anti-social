@@ -264,3 +264,52 @@ code {
   color: var(--primary);
   background: var(--surface-2);
 }
+
+.sidebar-user {
+  position: relative;
+}
+
+.sidebar-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.sidebar-avatar:hover {
+  background: var(--surface);
+}
+
+.sidebar-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-dropdown-item {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.sidebar-dropdown-item:hover {
+  background: var(--surface-2);
+}
