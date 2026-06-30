@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { relativeTime } from "../utils/time";
@@ -32,6 +33,7 @@ function getOwnerId(user: Post["user"]): string {
 
 export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpdated, onDeleted }: PostCardProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const owner = post.user as User | string;
   const fecha = post.fechaPublicacion ?? post.createdAt;
   const urls = images.map((img) => img.url_image);
@@ -84,8 +86,15 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (editing) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("a,button,input,textarea,select")) return;
+    navigate(`/post/${post._id}`);
+  };
+
   return (
-    <article className="card post-card" ref={cardRef}>
+    <article className="card post-card post-card--clickable" ref={cardRef} onClick={handleCardClick}>
       <header className="post-head">
         <div className="post-avatar" aria-hidden>
           {getAvatarLetter(owner)}
