@@ -1,22 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { Post, Tag, User } from "../types";
-
-function getOwnerNick(user: Post["user"]): string {
-  if (typeof user === "string") return user;
-  return user?.nickname ?? "anon";
-}
+import { PostCard } from "../components/PostCard";
+import type { Post, Tag } from "../types";
 
 function getPostDate(p: Post): number {
   const raw = p.fechaPublicacion ?? p.createdAt;
   return raw ? new Date(raw).getTime() : 0;
-}
-
-function formatDate(raw?: string): string {
-  if (!raw) return "";
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString();
 }
 
 export function Home() {
@@ -86,12 +75,8 @@ export function Home() {
       ) : (
         <ul className="feed-list">
           {posts.map((p) => (
-            <li key={p._id} className="card feed-item">
-              <div className="feed-item-head">
-                <strong>@{getOwnerNick(p.user as User | string)}</strong>
-                <span className="muted">{formatDate(p.fechaPublicacion ?? p.createdAt)}</span>
-              </div>
-              <p className="feed-item-text">{p.texto}</p>
+            <li key={p._id}>
+              <PostCard post={p} />
             </li>
           ))}
         </ul>
