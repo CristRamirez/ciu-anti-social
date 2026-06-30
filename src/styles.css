@@ -381,6 +381,72 @@ code {
   justify-content: flex-end;
 }
 
+.composer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+
+.composer-chip-x {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 0 2px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.composer-chip-x:hover {
+  color: var(--danger);
+}
+
+.composer-tag-add {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.composer-tag-add:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.composer-tag-input {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.composer-tag-input input {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  width: 140px;
+}
+
 /* ── Buttons ── */
 .btn {
   padding: 8px 18px;

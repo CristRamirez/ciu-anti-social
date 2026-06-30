@@ -34,4 +34,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ texto, tags }),
     }),
+
+  createTag: (nombre: string) =>
+    request<Tag>("/tags", {
+      method: "POST",
+      body: JSON.stringify({ nombre }),
+    }),
 };
