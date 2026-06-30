@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImageCarousel } from "../components/ImageCarousel";
+import { relativeTime } from "../utils/time";
 import type { Comment, Post, PostImage, User } from "../types";
 
 function getOwnerNick(user: Post["user"], users: User[]): string {
@@ -16,12 +17,6 @@ function getAvatarLetter(nick: string): string {
   return nick.charAt(0).toUpperCase() || "?";
 }
 
-function formatDate(raw?: string): string {
-  if (!raw) return "";
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString();
-}
 
 interface CommentItemProps {
   comment: Comment;
@@ -65,7 +60,7 @@ function CommentItem({ comment, nick, isOwn, postId, userId, onUpdated, onDelete
     <li className="comment-item card">
       <div className="comment-head">
         <span className="post-nick">@{nick}</span>
-        <span className="post-date muted">{formatDate(comment.createdAt)}</span>
+        <span className="post-date muted">{relativeTime(comment.createdAt)}</span>
         {isOwn && !editing && (
           <div className="comment-actions">
             <button type="button" className="post-edit-btn" onClick={() => { setEditText(comment.texto); setEditing(true); }} title="Editar">✏️</button>
@@ -232,7 +227,7 @@ export function PostDetail() {
 
           <div className="post-head-meta">
             <span className="post-nick">@{ownerNick}</span>
-            <span className="post-date muted">{formatDate(fecha)}</span>
+            <span className="post-date muted">{relativeTime(fecha)}</span>
           </div>
           {isOwner && !editing && (
             <>

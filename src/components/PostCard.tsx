@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { relativeTime } from "../utils/time";
 import type { Post, PostImage, User } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ImageCarousel } from "./ImageCarousel";
@@ -24,12 +25,6 @@ function getAvatarLetter(user: Post["user"]): string {
   return nick.charAt(0).toUpperCase() || "?";
 }
 
-function formatDate(raw?: string): string {
-  if (!raw) return "";
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString();
-}
 
 function getOwnerId(user: Post["user"]): string {
   if (typeof user === "string") return user;
@@ -93,7 +88,7 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
         </div>
         <div className="post-head-meta">
           <span className="post-nick">@{getOwnerNick(owner)}</span>
-          <span className="post-date muted">{formatDate(fecha)}</span>
+          <span className="post-date muted">{relativeTime(fecha)}</span>
         </div>
         {isOwner && !editing && (
           <button
