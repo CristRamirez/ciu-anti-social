@@ -447,6 +447,32 @@ code {
   width: 140px;
 }
 
+.composer-images {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.composer-image-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.composer-image-input {
+  flex: 1;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.composer-image-add {
+  align-self: flex-start;
+}
+
 /* ── Buttons ── */
 .btn {
   padding: 8px 18px;

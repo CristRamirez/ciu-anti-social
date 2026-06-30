@@ -1,4 +1,4 @@
-import type { Post, Tag, User } from "./types";
+import type { Post, PostImage, Tag, User } from "./types";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001/api";
 
@@ -39,5 +39,17 @@ export const api = {
     request<Tag>("/tags", {
       method: "POST",
       body: JSON.stringify({ nombre }),
+    }),
+
+  createPost: (userId: string, texto: string, tags: string[] = []) =>
+    request<Post>("/posts", {
+      method: "POST",
+      body: JSON.stringify({ texto, tags, user: userId }),
+    }),
+
+  createPostImage: (postId: string, url_image: string) =>
+    request<PostImage>("/post-images", {
+      method: "POST",
+      body: JSON.stringify({ id_post: postId, url_image }),
     }),
 };

@@ -14,6 +14,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
   const [tagInputOpen, setTagInputOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [tagLoading, setTagLoading] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,15 +33,30 @@ export function PostComposer({ onCreated }: PostComposerProps) {
     setSubmitting(true);
     try {
       const tagIds = tags.map((t) => t._id);
-      const created = await api.createPostForUser(user._id, value, tagIds);
+      const created = await api.createPost(user._id, value, tagIds);
+      const urls = imageUrls.map((u) => u.trim()).filter(Boolean);
+      for (const url of urls) {
+        await api.createPostImage(created._id, url);
+      }
       setTexto("");
       setTags([]);
+      setImageUrls([]);
       onCreated?.(created);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al publicar");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const addImageInput = () => setImageUrls((prev) => [...prev, ""]);
+
+  const updateImageUrl = (idx: number, value: string) => {
+    setImageUrls((prev) => prev.map((u, i) => (i === idx ? value : u)));
+  };
+
+  const removeImageUrl = (idx: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const removeTag = (id: string) => {
@@ -140,6 +156,34 @@ export function PostComposer({ onCreated }: PostComposerProps) {
             +
           </button>
         )}
+      </div>
+
+      <div className="composer-images">
+        {imageUrls.map((url, idx) => (
+          <div key={idx} className="composer-image-row">
+            <input
+              className="composer-image-input"
+              value={url}
+              onChange={(e) => updateImageUrl(idx, e.target.value)}
+              placeholder="https://..."
+              type="url"
+            />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => removeImageUrl(idx)}
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn btn-ghost composer-image-add"
+          onClick={addImageInput}
+        >
+          + Imagen
+        </button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
