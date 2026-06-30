@@ -47,6 +47,8 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
   const [menuOpen, setMenuOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [nicks, setNicks] = useState<Record<string, string>>({});
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +121,46 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
       onUpdated?.(updated);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const refreshComments = async () => {
+    try {
+      const data = await api.getComments(post._id);
+      setComments(data);
+      const uniqueIds = Array.from(new Set(data.map((c) => c.user)));
+      const missing = uniqueIds.filter((id) => !(id in nicks));
+      if (missing.length === 0) return;
+      const results = await Promise.all(
+        missing.map((id) =>
+          api
+            .getUser(id)
+            .then((u) => [id, u.nickname] as const)
+            .catch(() => [id, "anon"] as const)
+        )
+      );
+      setNicks((prev) => {
+        const next = { ...prev };
+        for (const [id, nick] of results) next[id] = nick;
+        return next;
+      });
+    } catch {
+      // ignorar
+    }
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    const value = newComment.trim();
+    if (!value) return;
+    setPostingComment(true);
+    try {
+      await api.createComment(user._id, post._id, value);
+      setNewComment("");
+      await refreshComments();
+    } finally {
+      setPostingComment(false);
     }
   };
 
@@ -249,6 +291,22 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
             return `${n} ${n === 1 ? "comentario" : "comentarios"}`;
           })()}
         </span>
+        <form className="comment-form" onSubmit={handleSubmitComment}>
+          <input
+            className="comment-input"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder={user ? "Escribí un comentario..." : "Iniciá sesión para comentar"}
+            disabled={!user || postingComment}
+          />
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!user || postingComment || !newComment.trim()}
+          >
+            {postingComment ? "..." : "Enviar"}
+          </button>
+        </form>
       </footer>
 
       <ConfirmDialog
