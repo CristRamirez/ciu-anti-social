@@ -58,4 +58,10 @@ export const api = {
 
   getComments: (postId: string) =>
     request<Comment[]>(`/comments/post/${postId}`),
+
+  createComment: (userId: string, postId: string, texto: string) =>
+    request<Comment>(`/comments/user/${userId}/post/${postId}`, {
+      method: "POST",
+      body: JSON.stringify({ texto }),
+    }),
 };

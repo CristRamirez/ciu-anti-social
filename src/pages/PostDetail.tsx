@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
+import { useAuth } from "../context/AuthContext";
 import type { Comment, Post, PostImage, User } from "../types";
 
 function getOwnerNick(user: Post["user"], users: User[]): string {
@@ -23,6 +24,7 @@ function formatDate(raw?: string): string {
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
   const [images, setImages] = useState<PostImage[]>([]);
@@ -30,6 +32,11 @@ export function PostDetail() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [commentText, setCommentText] = useState("");
+  const [commentSending, setCommentSending] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -98,6 +105,59 @@ export function PostDetail() {
         <h2 className="detail-comments-title">
           {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
         </h2>
+
+        {user && (
+          <form
+            className="comment-form card"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const texto = commentText.trim();
+              if (!texto) return;
+              setCommentSending(true);
+              setCommentError(null);
+              try {
+                await api.createComment(user._id, id!, texto);
+                setCommentText("");
+                const fresh = await api.getComments(id!);
+                setComments(fresh);
+                textareaRef.current?.focus();
+              } catch (err) {
+                setCommentError(err instanceof Error ? err.message : "Error");
+              } finally {
+                setCommentSending(false);
+              }
+            }}
+          >
+            <textarea
+              ref={textareaRef}
+              className="comment-textarea"
+              placeholder="Escribí un comentario..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value.slice(0, 255))}
+              rows={3}
+              maxLength={255}
+            />
+            {commentError && <p className="alert alert-error">{commentError}</p>}
+            <div className="comment-form-foot">
+              <span className="muted" style={{ fontSize: "0.8rem" }}>
+                {commentText.length}/255
+              </span>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={commentSending || !commentText.trim()}
+              >
+                {commentSending ? "Enviando..." : "Comentar"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {!user && (
+          <p className="muted" style={{ fontSize: "0.9rem" }}>
+            Iniciá sesión para comentar.
+          </p>
+        )}
 
         {comments.length === 0 && <p className="muted">Sin comentarios todavía.</p>}
 

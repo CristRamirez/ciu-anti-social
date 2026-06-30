@@ -384,6 +384,29 @@ code {
   word-break: break-word;
 }
 
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.comment-textarea {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.comment-form-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* ── Modal ── */
 .modal-backdrop {
   position: fixed;
