@@ -64,4 +64,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ texto }),
     }),
+
+  updatePost: (userId: string, postId: string, body: { texto?: string; tags?: string[] }) =>
+    request<Post>(`/posts/user/${userId}/post/${postId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 };

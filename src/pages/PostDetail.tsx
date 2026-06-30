@@ -39,6 +39,10 @@ export function PostDetail() {
   const [commentError, setCommentError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -67,6 +71,20 @@ export function PostDetail() {
 
   const ownerNick = getOwnerNick(post.user, users);
   const fecha = post.fechaPublicacion ?? post.createdAt;
+  const ownerId = typeof post.user === "object" ? post.user._id : post.user;
+  const isOwner = !!user && user._id === ownerId;
+
+  const handleEditSave = async () => {
+    if (!user) return;
+    setEditSaving(true);
+    try {
+      const updated = await api.updatePost(user._id, post._id, { texto: editText });
+      setPost(updated);
+      setEditing(false);
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   return (
     <div className="container feed">
@@ -77,17 +95,48 @@ export function PostDetail() {
       <article className="card post-detail-card">
         <header className="post-head">
           <div className="post-avatar">{getAvatarLetter(ownerNick)}</div>
+
           <div className="post-head-meta">
             <span className="post-nick">@{ownerNick}</span>
             <span className="post-date muted">{formatDate(fecha)}</span>
           </div>
+          {isOwner && !editing && (
+            <button
+              type="button"
+              className="post-edit-btn"
+              onClick={() => { setEditText(post.texto); setEditing(true); }}
+              title="Editar"
+            >
+              ✏️
+            </button>
+          )}
         </header>
 
         {images.length > 0 && (
           <ImageCarousel urls={images.map((i) => i.url_image)} height={560} />
         )}
 
-        <p className="post-text detail-text">{post.texto}</p>
+        {editing ? (
+          <div className="post-edit-form">
+            <textarea
+              className="post-edit-textarea"
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={5}
+              autoFocus
+            />
+            <div className="post-edit-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
+                {editSaving ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="post-text detail-text">{post.texto}</p>
+        )}
 
         {post.tags && post.tags.length > 0 && (
           <ul className="post-tags">
