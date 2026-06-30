@@ -20,6 +20,22 @@ export function Home() {
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [tagFilter, setTagFilter] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState(10);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+  const markNew = (id: string) => {
+    setNewIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setTimeout(() => {
+      setNewIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 600);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -115,7 +131,12 @@ export function Home() {
   return (
     <div className="container feed">
       <h1 className="feed-title">Feed</h1>
-      <PostComposer onCreated={(post) => setPosts((prev) => [post, ...prev])} />
+      <PostComposer
+        onCreated={(post) => {
+          setPosts((prev) => [post, ...prev]);
+          markNew(post._id);
+        }}
+      />
 
       <div className="feed-tabs">
         <button
@@ -153,7 +174,7 @@ export function Home() {
           <ul className="feed-list">
             {sortedPosts.slice(0, visibleCount).map((p) => (
               <li key={p._id}>
-                <PostCard post={p} commentsCount={commentCounts[p._id] ?? 0} />
+                <PostCard post={p} commentsCount={commentCounts[p._id] ?? 0} isNew={newIds.has(p._id)} />
               </li>
             ))}
           </ul>

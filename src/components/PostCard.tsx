@@ -11,6 +11,7 @@ interface PostCardProps {
   post: Post;
   images?: PostImage[];
   commentsCount?: number;
+  isNew?: boolean;
   onVerMas?: (postId: string) => void;
   onUpdated?: (updated: Post) => void;
   onDeleted?: (postId: string) => void;
@@ -31,7 +32,7 @@ function getOwnerId(user: Post["user"]): string {
   return user?._id ?? "";
 }
 
-export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpdated, onDeleted }: PostCardProps) {
+export function PostCard({ post, images = [], commentsCount = 0, isNew = false, onVerMas, onUpdated, onDeleted }: PostCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const owner = post.user as User | string;
@@ -172,7 +173,11 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
   };
 
   return (
-    <article className="card post-card post-card--clickable" ref={cardRef} onClick={handleCardClick}>
+    <article
+      className={`card post-card post-card--clickable${isNew ? " post-card--new" : ""}`}
+      ref={cardRef}
+      onClick={handleCardClick}
+    >
       <header className="post-head">
         <div className="post-avatar" aria-hidden>
           {getAvatarLetter(owner)}
