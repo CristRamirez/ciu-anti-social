@@ -28,4 +28,10 @@ export const api = {
 
   getPosts: () => request<Post[]>("/posts"),
   getTags: () => request<Tag[]>("/tags"),
+
+  createPostForUser: (userId: string, texto: string, tags: string[] = []) =>
+    request<Post>(`/posts/user/${userId}`, {
+      method: "POST",
+      body: JSON.stringify({ texto, tags }),
+    }),
 };

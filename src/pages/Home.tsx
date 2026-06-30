@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { PostCard } from "../components/PostCard";
+import { PostComposer } from "../components/PostComposer";
 import type { Post, Tag } from "../types";
 
 function getPostDate(p: Post): number {
@@ -70,6 +71,7 @@ export function Home() {
   return (
     <div className="container feed">
       <h1 className="feed-title">Feed</h1>
+      <PostComposer onCreated={(post) => setPosts((prev) => [post, ...prev])} />
       {posts.length === 0 ? (
         <p className="muted">No hay posts todavía.</p>
       ) : (
