@@ -100,3 +100,40 @@ code {
 .center {
   text-align: center;
 }
+
+.feed {
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.feed-title {
+  margin: 0 0 16px;
+  font-size: 1.4rem;
+}
+
+.feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feed-item {
+  padding: 14px 16px;
+}
+
+.feed-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.feed-item-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
