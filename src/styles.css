@@ -230,6 +230,59 @@ code {
   text-decoration: underline;
 }
 
+.comments-preview {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.comment-preview-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.comment-preview-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.comment-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.comment-preview-nick {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.comment-preview-text {
+  margin: 0;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comments-preview-more {
+  list-style: none;
+}
+
 .sidebar {
   position: fixed;
   top: 0;

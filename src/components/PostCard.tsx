@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { relativeTime } from "../utils/time";
-import type { Post, PostImage, User } from "../types";
+import type { Comment, Post, PostImage, User } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ImageCarousel } from "./ImageCarousel";
 
@@ -45,8 +45,44 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [nicks, setNicks] = useState<Record<string, string>>({});
   const cardRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getComments(post._id)
+      .then(async (data) => {
+        if (cancelled) return;
+        setComments(data);
+        const uniqueIds = Array.from(new Set(data.map((c) => c.user)));
+        const missing = uniqueIds.filter((id) => !(id in nicks));
+        if (missing.length === 0) return;
+        const results = await Promise.all(
+          missing.map((id) =>
+            api
+              .getUser(id)
+              .then((u) => [id, u.nickname] as const)
+              .catch(() => [id, "anon"] as const)
+          )
+        );
+        if (cancelled) return;
+        setNicks((prev) => {
+          const next = { ...prev };
+          for (const [id, nick] of results) next[id] = nick;
+          return next;
+        });
+      })
+      .catch(() => {
+        // ignorar errores de comments preview
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post._id]);
 
   useEffect(() => {
     if (!editing && !menuOpen) return;
@@ -177,9 +213,41 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
         </ul>
       )}
 
+      {comments.length > 0 && (
+        <ul className="comments-preview">
+          {comments.slice(0, 2).map((c) => {
+            const nick = nicks[c.user] ?? "...";
+            const letter = (nick.charAt(0) || "?").toUpperCase();
+            return (
+              <li key={c._id} className="comment-preview-item">
+                <div className="comment-preview-avatar" aria-hidden>{letter}</div>
+                <div className="comment-preview-body">
+                  <span className="comment-preview-nick">@{nick}</span>
+                  <p className="comment-preview-text">{c.texto}</p>
+                </div>
+              </li>
+            );
+          })}
+          {comments.length > 2 && (
+            <li className="comments-preview-more">
+              <button
+                type="button"
+                className="post-ver-mas"
+                onClick={() => (onVerMas ? onVerMas(post._id) : navigate(`/post/${post._id}`))}
+              >
+                Ver {comments.length - 2} comentarios más
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
+
       <footer className="post-foot">
         <span className="muted">
-          {commentsCount} {commentsCount === 1 ? "comentario" : "comentarios"}
+          {(() => {
+            const n = comments.length || commentsCount;
+            return `${n} ${n === 1 ? "comentario" : "comentarios"}`;
+          })()}
         </span>
       </footer>
 
