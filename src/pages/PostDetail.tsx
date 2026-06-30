@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { ImageCarousel } from "../components/ImageCarousel";
 import type { Comment, Post, PostImage, User } from "../types";
 
 function getOwnerNick(user: Post["user"], users: User[]): string {
@@ -83,11 +84,7 @@ export function PostDetail() {
         </header>
 
         {images.length > 0 && (
-          <div className="detail-images">
-            {images.map((img) => (
-              <img key={img._id} src={img.url_image} alt="" className="detail-img" />
-            ))}
-          </div>
+          <ImageCarousel urls={images.map((i) => i.url_image)} height={560} />
         )}
 
         <p className="post-text detail-text">{post.texto}</p>

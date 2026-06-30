@@ -1,7 +1,9 @@
-import type { Post, User } from "../types";
+import type { Post, PostImage, User } from "../types";
+import { ImageCarousel } from "./ImageCarousel";
 
 interface PostCardProps {
   post: Post;
+  images?: PostImage[];
   commentsCount?: number;
   onVerMas?: (postId: string) => void;
 }
@@ -23,9 +25,10 @@ function formatDate(raw?: string): string {
   return d.toLocaleString();
 }
 
-export function PostCard({ post, commentsCount = 0, onVerMas }: PostCardProps) {
+export function PostCard({ post, images = [], commentsCount = 0, onVerMas }: PostCardProps) {
   const owner = post.user as User | string;
   const fecha = post.fechaPublicacion ?? post.createdAt;
+  const urls = images.map((img) => img.url_image);
 
   return (
     <article className="card post-card">
@@ -38,6 +41,8 @@ export function PostCard({ post, commentsCount = 0, onVerMas }: PostCardProps) {
           <span className="post-date muted">{formatDate(fecha)}</span>
         </div>
       </header>
+
+      {urls.length > 0 && <ImageCarousel urls={urls} height={460} />}
 
       <p className="post-text">{post.texto}</p>
 
