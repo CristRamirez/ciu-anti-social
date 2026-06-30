@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import type { Post, PostImage, User } from "../types";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { ImageCarousel } from "./ImageCarousel";
 
 interface PostCardProps {
@@ -10,6 +11,7 @@ interface PostCardProps {
   commentsCount?: number;
   onVerMas?: (postId: string) => void;
   onUpdated?: (updated: Post) => void;
+  onDeleted?: (postId: string) => void;
 }
 
 function getOwnerNick(user: Post["user"]): string {
@@ -34,7 +36,7 @@ function getOwnerId(user: Post["user"]): string {
   return user?._id ?? "";
 }
 
-export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpdated }: PostCardProps) {
+export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpdated, onDeleted }: PostCardProps) {
   const { user } = useAuth();
   const owner = post.user as User | string;
   const fecha = post.fechaPublicacion ?? post.createdAt;
@@ -44,6 +46,8 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.texto);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -57,6 +61,17 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [editing, post.texto]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.deletePost(post._id);
+      setConfirmDelete(false);
+      onDeleted?.(post._id);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -128,14 +143,37 @@ export function PostCard({ post, images = [], commentsCount = 0, onVerMas, onUpd
         <span className="muted">
           {commentsCount} {commentsCount === 1 ? "comentario" : "comentarios"}
         </span>
-        <button
-          type="button"
-          className="post-ver-mas"
-          onClick={() => onVerMas?.(post._id)}
-        >
-          Ver más
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {isOwner && (
+            <button
+              type="button"
+              className="post-delete-btn"
+              onClick={() => setConfirmDelete(true)}
+              title="Eliminar"
+            >
+              🗑️
+            </button>
+          )}
+          <button
+            type="button"
+            className="post-ver-mas"
+            onClick={() => onVerMas?.(post._id)}
+          >
+            Ver más
+          </button>
+        </div>
       </footer>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Eliminar post"
+        message="¿Seguro que querés eliminar este post?"
+        confirmLabel="Eliminar"
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </article>
   );
 }

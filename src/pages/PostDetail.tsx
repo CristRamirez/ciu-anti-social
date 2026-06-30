@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImageCarousel } from "../components/ImageCarousel";
 import type { Comment, Post, PostImage, User } from "../types";
 
@@ -46,6 +47,8 @@ export function PostDetail() {
   const [editSaving, setEditSaving] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [imageAdding, setImageAdding] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -79,6 +82,16 @@ export function PostDetail() {
   const fecha = post.fechaPublicacion ?? post.createdAt;
   const ownerId = typeof post.user === "object" ? post.user._id : post.user;
   const isOwner = !!user && user._id === ownerId;
+
+  const handleDeletePost = async () => {
+    setDeleting(true);
+    try {
+      await api.deletePost(post._id);
+      navigate("/");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const toggleEditTag = (tagId: string) => {
     setEditTags((prev) =>
@@ -137,14 +150,24 @@ export function PostDetail() {
             <span className="post-date muted">{formatDate(fecha)}</span>
           </div>
           {isOwner && !editing && (
-            <button
-              type="button"
-              className="post-edit-btn"
-              onClick={() => { setEditText(post.texto); setEditTags(post.tags.map((t) => t._id)); setEditing(true); }}
-              title="Editar"
-            >
-              ✏️
-            </button>
+            <>
+              <button
+                type="button"
+                className="post-edit-btn"
+                onClick={() => { setEditText(post.texto); setEditTags(post.tags.map((t) => t._id)); setEditing(true); }}
+                title="Editar"
+              >
+                ✏️
+              </button>
+              <button
+                type="button"
+                className="post-delete-btn"
+                onClick={() => setConfirmDelete(true)}
+                title="Eliminar"
+              >
+                🗑️
+              </button>
+            </>
           )}
         </header>
 
@@ -220,6 +243,17 @@ export function PostDetail() {
           </ul>
         )}
       </article>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Eliminar post"
+        message="¿Seguro que querés eliminar este post?"
+        confirmLabel="Eliminar"
+        danger
+        loading={deleting}
+        onConfirm={handleDeletePost}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
       <section className="detail-comments">
         <h2 className="detail-comments-title">

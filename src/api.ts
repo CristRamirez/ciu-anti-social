@@ -80,4 +80,7 @@ export const api = {
     request<void>(`/post-images/user/${userId}/post/${postId}/images/${imageId}`, {
       method: "DELETE",
     }),
+
+  deletePost: (postId: string) =>
+    request<void>(`/posts/${postId}`, { method: "DELETE" }),
 };
