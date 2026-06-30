@@ -137,6 +137,16 @@ code {
   color: var(--text);
 }
 
+.feed-tag-filter {
+  margin-left: auto;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
 .feed-list {
   list-style: none;
   margin: 0;

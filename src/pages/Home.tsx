@@ -13,11 +13,12 @@ function getPostDate(p: Post): number {
 
 export function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [, setTags] = useState<Tag[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [tagFilter, setTagFilter] = useState<string>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -91,15 +92,20 @@ export function Home() {
     );
   }
 
+  const filteredPosts = useMemo(() => {
+    if (!tagFilter) return posts;
+    return posts.filter((p) => p.tags?.some((t) => t._id === tagFilter));
+  }, [posts, tagFilter]);
+
   const sortedPosts = useMemo(() => {
-    const copy = [...posts];
+    const copy = [...filteredPosts];
     if (sortMode === "popular") {
       copy.sort((a, b) => (commentCounts[b._id] ?? 0) - (commentCounts[a._id] ?? 0));
     } else {
       copy.sort((a, b) => getPostDate(b) - getPostDate(a));
     }
     return copy;
-  }, [posts, sortMode, commentCounts]);
+  }, [filteredPosts, sortMode, commentCounts]);
 
   return (
     <div className="container feed">
@@ -121,6 +127,18 @@ export function Home() {
         >
           Populares
         </button>
+        <select
+          className="feed-tag-filter"
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
+        >
+          <option value="">Todas las etiquetas</option>
+          {tags.map((t) => (
+            <option key={t._id} value={t._id}>
+              #{t.nombre}
+            </option>
+          ))}
+        </select>
       </div>
 
       {sortedPosts.length === 0 ? (
