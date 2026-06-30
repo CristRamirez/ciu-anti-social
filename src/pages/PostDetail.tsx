@@ -31,6 +31,7 @@ export function PostDetail() {
   const [images, setImages] = useState<PostImage[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [allTags, setAllTags] = useState<import("../types").Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +42,7 @@ export function PostDetail() {
 
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [editSaving, setEditSaving] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [imageAdding, setImageAdding] = useState(false);
@@ -53,14 +55,16 @@ export function PostDetail() {
       api.getPostImages(id),
       api.getComments(id),
       api.getUsers(),
+      api.getTags(),
     ])
-      .then(([posts, imgs, cmts, usrs]) => {
+      .then(([posts, imgs, cmts, usrs, tags]) => {
         const found = posts.find((p) => p._id === id);
         if (!found) { setError("Post no encontrado"); return; }
         setPost(found);
         setImages(imgs);
         setComments(cmts);
         setUsers(usrs);
+        setAllTags(tags);
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Error")
@@ -75,6 +79,12 @@ export function PostDetail() {
   const fecha = post.fechaPublicacion ?? post.createdAt;
   const ownerId = typeof post.user === "object" ? post.user._id : post.user;
   const isOwner = !!user && user._id === ownerId;
+
+  const toggleEditTag = (tagId: string) => {
+    setEditTags((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
+    );
+  };
 
   const handleDeleteImage = async (imgIdx: number) => {
     if (!user) return;
@@ -104,7 +114,7 @@ export function PostDetail() {
     if (!user) return;
     setEditSaving(true);
     try {
-      const updated = await api.updatePost(user._id, post._id, { texto: editText });
+      const updated = await api.updatePost(user._id, post._id, { texto: editText, tags: editTags });
       setPost(updated);
       setEditing(false);
     } finally {
@@ -130,7 +140,7 @@ export function PostDetail() {
             <button
               type="button"
               className="post-edit-btn"
-              onClick={() => { setEditText(post.texto); setEditing(true); }}
+              onClick={() => { setEditText(post.texto); setEditTags(post.tags.map((t) => t._id)); setEditing(true); }}
               title="Editar"
             >
               ✏️
@@ -175,6 +185,20 @@ export function PostDetail() {
               rows={5}
               autoFocus
             />
+            {allTags.length > 0 && (
+              <div className="edit-tag-picker">
+                {allTags.map((t) => (
+                  <button
+                    key={t._id}
+                    type="button"
+                    className={`edit-tag-chip${editTags.includes(t._id) ? " selected" : ""}`}
+                    onClick={() => toggleEditTag(t._id)}
+                  >
+                    #{t.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="post-edit-actions">
               <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
                 Cancelar

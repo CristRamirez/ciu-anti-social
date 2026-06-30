@@ -578,6 +578,28 @@ code {
   padding: 8px 10px;
 }
 
+.edit-tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edit-tag-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.edit-tag-chip.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
 .comment-form {
   display: flex;
   flex-direction: column;
