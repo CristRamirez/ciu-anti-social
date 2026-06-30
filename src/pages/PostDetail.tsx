@@ -23,6 +23,91 @@ function formatDate(raw?: string): string {
   return d.toLocaleString();
 }
 
+interface CommentItemProps {
+  comment: Comment;
+  nick: string;
+  isOwn: boolean;
+  postId: string;
+  userId: string;
+  onUpdated: (c: Comment) => void;
+  onDeleted: (id: string) => void;
+}
+
+function CommentItem({ comment, nick, isOwn, postId, userId, onUpdated, onDeleted }: CommentItemProps) {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.texto);
+  const [saving, setSaving] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await api.updateComment(userId, postId, comment._id, editText);
+      onUpdated(updated);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.deleteComment(userId, postId, comment._id);
+      onDeleted(comment._id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <li className="comment-item card">
+      <div className="comment-head">
+        <span className="post-nick">@{nick}</span>
+        <span className="post-date muted">{formatDate(comment.createdAt)}</span>
+        {isOwn && !editing && (
+          <div className="comment-actions">
+            <button type="button" className="post-edit-btn" onClick={() => { setEditText(comment.texto); setEditing(true); }} title="Editar">✏️</button>
+            <button type="button" className="post-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar">🗑️</button>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="post-edit-form">
+          <textarea
+            className="post-edit-textarea"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            rows={3}
+            autoFocus
+          />
+          <div className="post-edit-actions">
+            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
+            <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="comment-text">{comment.texto}</p>
+      )}
+
+      <ConfirmDialog
+        open={confirmDel}
+        title="Eliminar comentario"
+        message="¿Seguro que querés eliminar este comentario?"
+        confirmLabel="Eliminar"
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDel(false)}
+      />
+    </li>
+  );
+}
+
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -316,18 +401,22 @@ export function PostDetail() {
         {comments.length === 0 && <p className="muted">Sin comentarios todavía.</p>}
 
         <ul className="comment-list">
-          {comments.map((c) => {
-            const nick = users.find((u) => u._id === c.user)?.nickname ?? c.user;
-            return (
-              <li key={c._id} className="comment-item card">
-                <div className="comment-head">
-                  <span className="post-nick">@{nick}</span>
-                  <span className="post-date muted">{formatDate(c.createdAt)}</span>
-                </div>
-                <p className="comment-text">{c.texto}</p>
-              </li>
-            );
-          })}
+          {comments.map((c) => (
+            <CommentItem
+              key={c._id}
+              comment={c}
+              nick={users.find((u) => u._id === c.user)?.nickname ?? c.user}
+              isOwn={!!user && user._id === c.user}
+              postId={id!}
+              userId={user?._id ?? ""}
+              onUpdated={(updated) =>
+                setComments((prev) => prev.map((x) => (x._id === updated._id ? updated : x)))
+              }
+              onDeleted={(cid) =>
+                setComments((prev) => prev.filter((x) => x._id !== cid))
+              }
+            />
+          ))}
         </ul>
       </section>
     </div>

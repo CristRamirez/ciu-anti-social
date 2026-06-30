@@ -612,6 +612,12 @@ code {
   color: #fff;
 }
 
+.comment-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
 .comment-form {
   display: flex;
   flex-direction: column;

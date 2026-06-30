@@ -83,4 +83,14 @@ export const api = {
 
   deletePost: (postId: string) =>
     request<void>(`/posts/${postId}`, { method: "DELETE" }),
+
+  updateComment: (userId: string, postId: string, commentId: string, texto: string) =>
+    request<Comment>(`/comments/user/${userId}/post/${postId}/${commentId}`, {
+      method: "PUT",
+      body: JSON.stringify({ texto }),
+    }),
+  deleteComment: (userId: string, postId: string, commentId: string) =>
+    request<void>(`/comments/user/${userId}/post/${postId}/${commentId}`, {
+      method: "DELETE",
+    }),
 };
