@@ -42,6 +42,8 @@ export function PostDetail() {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [imageAdding, setImageAdding] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -73,6 +75,30 @@ export function PostDetail() {
   const fecha = post.fechaPublicacion ?? post.createdAt;
   const ownerId = typeof post.user === "object" ? post.user._id : post.user;
   const isOwner = !!user && user._id === ownerId;
+
+  const handleDeleteImage = async (imgIdx: number) => {
+    if (!user) return;
+    const img = images[imgIdx];
+    if (!img) return;
+    try {
+      await api.deletePostImage(user._id, post._id, img._id);
+      setImages((prev) => prev.filter((_, i) => i !== imgIdx));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleAddImage = async () => {
+    if (!user || !newImageUrl.trim()) return;
+    setImageAdding(true);
+    try {
+      const img = await api.addPostImage(user._id, post._id, newImageUrl.trim());
+      setImages((prev) => [...prev, img]);
+      setNewImageUrl("");
+    } finally {
+      setImageAdding(false);
+    }
+  };
 
   const handleEditSave = async () => {
     if (!user) return;
@@ -113,7 +139,31 @@ export function PostDetail() {
         </header>
 
         {images.length > 0 && (
-          <ImageCarousel urls={images.map((i) => i.url_image)} height={560} />
+          <ImageCarousel
+            urls={images.map((i) => i.url_image)}
+            height={560}
+            onDelete={editing ? handleDeleteImage : undefined}
+          />
+        )}
+
+        {editing && (
+          <div className="image-add-row">
+            <input
+              className="image-add-input"
+              type="url"
+              placeholder="URL de imagen..."
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleAddImage}
+              disabled={imageAdding || !newImageUrl.trim()}
+            >
+              {imageAdding ? "..." : "Agregar"}
+            </button>
+          </div>
         )}
 
         {editing ? (

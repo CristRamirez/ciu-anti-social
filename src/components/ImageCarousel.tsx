@@ -3,9 +3,10 @@ import { useState } from "react";
 interface ImageCarouselProps {
   urls: string[];
   height?: number;
+  onDelete?: (idx: number) => void;
 }
 
-export function ImageCarousel({ urls, height = 460 }: ImageCarouselProps) {
+export function ImageCarousel({ urls, height = 460, onDelete }: ImageCarouselProps) {
   const [idx, setIdx] = useState(0);
 
   if (urls.length === 0) return null;
@@ -14,6 +15,13 @@ export function ImageCarousel({ urls, height = 460 }: ImageCarouselProps) {
 
   const prev = () => setIdx((i) => (i - 1 + urls.length) % urls.length);
   const next = () => setIdx((i) => (i + 1) % urls.length);
+
+  const handleDelete = () => {
+    const current = idx;
+    const newIdx = current >= urls.length - 1 ? Math.max(0, urls.length - 2) : current;
+    setIdx(newIdx);
+    onDelete?.(current);
+  };
 
   return (
     <div className="carousel" style={{ height }}>
@@ -25,6 +33,17 @@ export function ImageCarousel({ urls, height = 460 }: ImageCarouselProps) {
           <img key={i} src={url} alt="" className="carousel-slide" />
         ))}
       </div>
+
+      {onDelete && (
+        <button
+          type="button"
+          className="carousel-delete"
+          onClick={handleDelete}
+          title="Eliminar imagen"
+        >
+          ✕
+        </button>
+      )}
 
       {!single && (
         <>

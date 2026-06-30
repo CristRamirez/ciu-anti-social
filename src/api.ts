@@ -70,4 +70,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+
+  addPostImage: (userId: string, postId: string, url_image: string) =>
+    request<PostImage>(`/post-images/user/${userId}/post/${postId}`, {
+      method: "POST",
+      body: JSON.stringify({ url_image }),
+    }),
+  deletePostImage: (userId: string, postId: string, imageId: string) =>
+    request<void>(`/post-images/user/${userId}/post/${postId}/images/${imageId}`, {
+      method: "DELETE",
+    }),
 };
