@@ -54,9 +54,15 @@ export function Profile() {
     return null;
   }
 
-  if (loading) return <div className="container feed"><p className="muted">Cargando...</p></div>;
-
   const displayUser = isOwn ? user : profileUser;
+
+  useEffect(() => {
+    if (!displayUser) return;
+    document.title = `@${displayUser.nickname}`;
+    return () => { document.title = "UnaHur Anti-Social Net"; };
+  }, [displayUser]);
+
+  if (loading) return <div className="container feed"><p className="muted">Cargando...</p></div>;
   if (!displayUser || !displayUser._id) {
     return (
       <div className="container feed">
