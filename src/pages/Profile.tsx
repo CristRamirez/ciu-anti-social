@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import type { Post, User } from "../types";
@@ -55,7 +55,21 @@ export function Profile() {
   if (loading) return <div className="container feed"><p className="muted">Cargando...</p></div>;
 
   const displayUser = isOwn ? user : profileUser;
-  if (!displayUser) return null;
+  if (!displayUser || !displayUser._id) {
+    return (
+      <div className="container feed">
+        <div className="card ghost-card">
+          <svg className="ghost-avatar" viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="30" r="18" fill="var(--muted)" opacity="0.3" />
+            <ellipse cx="40" cy="68" rx="26" ry="16" fill="var(--muted)" opacity="0.3" />
+            <line x1="20" y1="15" x2="60" y2="55" stroke="var(--danger)" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          <h2>Usuario no encontrado</h2>
+          <Link to="/" className="btn btn-ghost">Volver al inicio</Link>
+        </div>
+      </div>
+    );
+  }
 
   const startEditNick = () => {
     setNickValue(displayUser.nickname);
