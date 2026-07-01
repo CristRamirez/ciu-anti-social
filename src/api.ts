@@ -25,6 +25,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ nickname }),
     }),
+  updateUser: (id: string, nickname: string) =>
+    request<User>(`/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ nickname }),
+    }),
 
   getPosts: () => request<Post[]>("/posts"),
   getTags: () => request<Tag[]>("/tags"),
