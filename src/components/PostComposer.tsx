@@ -200,7 +200,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         <EmojiPicker onSelect={(emoji) => setTexto((prev) => prev + emoji)} />
         <button
           type="submit"
-          className="btn btn-primary"
+          className="btn btn-primary btn-pill"
           disabled={submitting || !texto.trim()}
         >
           {submitting ? "Publicando..." : "Publicar"}

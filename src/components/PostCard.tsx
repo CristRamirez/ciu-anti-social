@@ -313,7 +313,7 @@ export function PostCard({ post, images = [], commentsCount = 0, isNew = false, 
           <EmojiPicker onSelect={(emoji) => setNewComment((prev) => prev + emoji)} />
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary btn-pill"
             disabled={!user || postingComment || !newComment.trim()}
           >
             {postingComment ? "..." : "Enviar"}
