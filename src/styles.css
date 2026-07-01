@@ -1120,6 +1120,9 @@ code {
   gap: 20px;
   margin-bottom: 24px;
   flex-wrap: wrap;
+  background: radial-gradient(ellipse at 30% 50%, rgba(45, 212, 191, 0.08) 0%, transparent 70%);
+  border-radius: var(--radius);
+  padding: 24px;
 }
 
 .profile-avatar-xl {
@@ -1127,7 +1130,8 @@ code {
   height: 96px;
   border-radius: 50%;
   background: var(--surface-2);
-  border: 2px solid var(--border);
+  border: 2px solid var(--ok);
+  box-shadow: 0 0 16px rgba(45, 212, 191, 0.25);
   display: grid;
   place-items: center;
   font-size: 2.4rem;
@@ -1150,6 +1154,30 @@ code {
   margin-left: auto;
   display: flex;
   gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .profile-head {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-avatar-xl {
+    width: 88px;
+    height: 88px;
+    font-size: 2.2rem;
+  }
+
+  .profile-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nick-row {
+    justify-content: center;
+  }
 }
 
 .nick-row {
