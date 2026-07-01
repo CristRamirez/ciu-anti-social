@@ -1,30 +1,56 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
-import type { Post } from "../types";
+import type { Post, User } from "../types";
 import { relativeTime } from "../utils/time";
 
 export function Profile() {
+  const { id: routeId } = useParams<{ id: string }>();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [profileUser, setProfileUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    api
-      .getPostsByUser(user._id)
-      .then((data) => setPosts(data))
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
-  }, [user]);
+  const isOwn = !routeId || routeId === user?._id;
+  const targetId = isOwn ? user?._id : routeId;
 
-  if (!user) {
+  useEffect(() => {
+    if (!targetId) return;
+    setLoading(true);
+
+    const fetchProfile = isOwn
+      ? Promise.resolve(user)
+      : api.getUser(targetId);
+
+    Promise.all([fetchProfile, api.getPostsByUser(targetId)])
+      .then(([u, p]) => {
+        setProfileUser(u);
+        setPosts(p);
+      })
+      .catch(() => {
+        setProfileUser(null);
+        setPosts([]);
+      })
+      .finally(() => setLoading(false));
+  }, [targetId, isOwn, user]);
+
+  if (!isOwn && !routeId) {
     navigate("/login");
     return null;
   }
+
+  if (loading) {
+    return (
+      <div className="container feed">
+        <p className="muted">Cargando...</p>
+      </div>
+    );
+  }
+
+  const displayUser = isOwn ? user : profileUser;
+  if (!displayUser) return null;
 
   const handleLogout = () => {
     logout();
@@ -35,37 +61,32 @@ export function Profile() {
     <div className="container feed">
       <div className="profile-head">
         <div className="profile-avatar-xl">
-          {user.nickname.charAt(0).toUpperCase()}
+          {displayUser.nickname.charAt(0).toUpperCase()}
         </div>
         <div className="profile-info">
-          <h1 className="profile-nick">@{user.nickname}</h1>
+          <h1 className="profile-nick">@{displayUser.nickname}</h1>
           <span className="muted">
             {posts.length} {posts.length === 1 ? "publicacion" : "publicaciones"}
           </span>
         </div>
-        <div className="profile-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigate("/")}
-            title="Crear post"
-          >
-            + Crear post
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={handleLogout}
-            title="Cerrar sesion"
-          >
-            Cerrar sesion
-          </button>
-        </div>
+        {isOwn && (
+          <div className="profile-actions">
+            <button type="button" className="btn btn-primary" onClick={() => navigate("/")}title="Crear post"
+            >
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleLogout}
+              title="Cerrar sesion"
+            >
+              Cerrar sesion
+            </button>
+          </div>
+        )}
       </div>
 
-      {loading ? (
-        <p className="muted">Cargando publicaciones...</p>
-      ) : posts.length === 0 ? (
+      {posts.length === 0 ? (
         <p className="muted">No hay publicaciones todavia.</p>
       ) : (
         <ul className="feed-list">
@@ -76,10 +97,10 @@ export function Profile() {
                 <article className="card post-card">
                   <header className="post-head">
                     <div className="post-avatar" aria-hidden>
-                      {user.nickname.charAt(0).toUpperCase()}
+                      {displayUser.nickname.charAt(0).toUpperCase()}
                     </div>
                     <div className="post-head-meta">
-                      <span className="post-nick">@{user.nickname}</span>
+                      <span className="post-nick">@{displayUser.nickname}</span>
                       <span className="post-date muted">
                         {relativeTime(fecha)}
                       </span>

@@ -53,14 +53,8 @@ export const api = {
       body: JSON.stringify({ texto, tags, user: userId }),
     }),
 
-  createPostImage: (postId: string, url_image: string) =>
-    request<PostImage>("/post-images", {
-      method: "POST",
-      body: JSON.stringify({ id_post: postId, url_image }),
-    }),
-
-  getPostImages: (postId: string) =>
-    request<PostImage[]>(`/post-images/post/${postId}`),
+  getPostImages: (userId: string, postId: string) =>
+    request<PostImage[]>(`/post-images/user/${userId}/post/${postId}/images`),
 
   getComments: (postId: string) =>
     request<Comment[]>(`/comments/post/${postId}`),
@@ -78,7 +72,7 @@ export const api = {
     }),
 
   addPostImage: (userId: string, postId: string, url_image: string) =>
-    request<PostImage>(`/post-images/user/${userId}/post/${postId}`, {
+    request<PostImage>(`/post-images/user/${userId}/post/${postId}/images`, {
       method: "POST",
       body: JSON.stringify({ url_image }),
     }),

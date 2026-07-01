@@ -135,19 +135,24 @@ export function PostDetail() {
     setLoading(true);
     Promise.all([
       api.getPosts(),
-      api.getPostImages(id),
       api.getComments(id),
       api.getUsers(),
       api.getTags(),
     ])
-      .then(([posts, imgs, cmts, usrs, tags]) => {
+      .then(async ([posts, cmts, usrs, tags]) => {
         const found = posts.find((p) => p._id === id);
         if (!found) { setError("Post no encontrado"); return; }
         setPost(found);
-        setImages(imgs);
         setComments(cmts);
         setUsers(usrs);
         setAllTags(tags);
+        const ownerId = typeof found.user === "object" ? found.user._id : found.user;
+        try {
+          const imgs = await api.getPostImages(ownerId, id);
+          setImages(imgs);
+        } catch {
+          setImages([]);
+        }
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Error")
