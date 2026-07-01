@@ -47,6 +47,17 @@ export const api = {
       body: JSON.stringify({ nombre }),
     }),
 
+  updateTag: (id: string, nombre: string) =>
+  request<Tag>(`/tags/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ nombre }),
+  }),
+
+  deleteTag: (id: string) =>
+    request<void>(`/tags/${id}`, {
+      method: "DELETE",
+  }),
+
   createPost: (userId: string, texto: string, tags: string[] = []) =>
     request<Post>("/posts", {
       method: "POST",
