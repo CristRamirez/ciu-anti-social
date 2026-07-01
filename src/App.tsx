@@ -6,11 +6,13 @@ import { Register } from "./pages/Register";
 import { PostDetail } from "./pages/PostDetail";
 import { Profile } from "./pages/Profile";
 import { Users } from "./pages/Users";
+import { UsersPanel } from "./components/UsersPanel";
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <UsersPanel />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/post/:id" element={<PostDetail />} />
