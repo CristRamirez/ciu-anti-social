@@ -1105,3 +1105,37 @@ code {
   display: flex;
   gap: 8px;
 }
+
+.nick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nick-input {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  width: 200px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+}
