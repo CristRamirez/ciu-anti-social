@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -12,19 +13,21 @@ import { Sidebar } from "./components/Sidebar";
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Sidebar />
-        <UsersPanel />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/post/:id" element={<PostDetail />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/u/:id" element={<Profile />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-        </Routes>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Sidebar />
+          <UsersPanel />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/u/:id" element={<Profile />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Routes>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }
