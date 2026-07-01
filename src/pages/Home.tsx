@@ -93,22 +93,6 @@ export function Home() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="container feed">
-        <p className="muted">Cargando...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container feed">
-        <div className="alert alert-error">{error}</div>
-      </div>
-    );
-  }
-
   const filteredPosts = useMemo(() => {
     if (!tagFilter) return posts;
     return posts.filter((p) => p.tags?.some((t) => t._id === tagFilter));
@@ -127,6 +111,22 @@ export function Home() {
     }
     return copy;
   }, [filteredPosts, sortMode, commentCounts]);
+
+  if (loading) {
+    return (
+      <div className="container feed">
+        <p className="muted">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container feed">
+        <div className="alert alert-error">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container feed">

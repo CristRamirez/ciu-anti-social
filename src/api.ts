@@ -32,6 +32,7 @@ export const api = {
     }),
 
   getPosts: () => request<Post[]>("/posts"),
+  getPostsByUser: (userId: string) => request<Post[]>(`/posts/user/${userId}`),
   getTags: () => request<Tag[]>("/tags"),
 
   createPostForUser: (userId: string, texto: string, tags: string[] = []) =>

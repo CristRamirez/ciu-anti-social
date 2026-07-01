@@ -1066,3 +1066,42 @@ code {
   border: 1px solid var(--danger);
   color: var(--danger);
 }
+
+/* ── Profile ── */
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.profile-avatar-xl {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 2.4rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-nick {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.profile-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
