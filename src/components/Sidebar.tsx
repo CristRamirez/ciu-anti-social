@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { SearchUsers } from "./SearchUsers";
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? "sidebar-link active" : "sidebar-link";
@@ -10,6 +11,7 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function Sidebar() {
         <NavLink to="/" end className={navLinkClass}>
           Inicio
         </NavLink>
-        <button type="button" className="sidebar-link sidebar-link-btn">
+        <button type="button" className="sidebar-link sidebar-link-btn" onClick={() => setSearchOpen(true)}>
           Buscar
         </button>
         <NavLink to="/profile" className={navLinkClass}>
@@ -71,6 +73,8 @@ export function Sidebar() {
           {user.nickname.charAt(0).toUpperCase()}
         </button>
       </div>
+
+      <SearchUsers open={searchOpen} onClose={() => setSearchOpen(false)} />
     </aside>
   );
 }

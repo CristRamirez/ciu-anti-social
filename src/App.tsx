@@ -7,11 +7,13 @@ import { PostDetail } from "./pages/PostDetail";
 import { Profile } from "./pages/Profile";
 import { Users } from "./pages/Users";
 import { UsersPanel } from "./components/UsersPanel";
+import { Sidebar } from "./components/Sidebar";
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Sidebar />
         <UsersPanel />
         <Routes>
           <Route path="/" element={<Home />} />
