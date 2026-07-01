@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
 import { SettingsFab } from "./components/SettingsFab";
+import { MobileNav } from "./components/MobileNav";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -21,15 +22,18 @@ export default function App() {
             <Sidebar />
             <UsersPanel />
             <SettingsFab />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/post/:id" element={<PostDetail />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/u/:id" element={<Profile />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-            </Routes>
+            <main className="app-main">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/post/:id" element={<PostDetail />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/u/:id" element={<Profile />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+              </Routes>
+            </main>
+            <MobileNav />
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>

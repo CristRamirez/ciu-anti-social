@@ -1635,3 +1635,111 @@ code {
     padding-bottom: 8px;
   }
 }
+
+/* ── MobileNav ── */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-around;
+  z-index: 90;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.mobile-nav-item:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.mobile-nav-item.active {
+  color: var(--primary);
+}
+
+.mobile-nav-create {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow);
+  flex-shrink: 0;
+}
+
+.mobile-nav-create:hover {
+  background: var(--primary-2);
+}
+
+/* ── Responsive breakpoints ── */
+@media (max-width: 1024px) {
+  .users-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-nav {
+    display: flex;
+  }
+
+  .app-main {
+    padding-bottom: 80px;
+  }
+}
+
+@media (max-width: 600px) {
+  .feed-tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .feed-tag-filter {
+    margin-left: 0;
+  }
+
+  .post-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .composer-actions {
+    flex-wrap: wrap;
+  }
+
+  .modal-backdrop {
+    padding: 0;
+  }
+
+  .modal-box {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .toast-viewport {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+  }
+}

@@ -132,7 +132,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {typeof document !== "undefined" &&
         createPortal(
-          <div style={viewportStyle}>
+          <div className="toast-viewport" style={viewportStyle}>
             {toasts.map((toastItem) => {
               const color = toastColors[toastItem.type];
 
