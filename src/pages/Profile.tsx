@@ -16,6 +16,7 @@ export function Profile() {
   const [editingNick, setEditingNick] = useState(false);
   const [nickValue, setNickValue] = useState("");
   const [nickSaving, setNickSaving] = useState(false);
+  const [nickError, setNickError] = useState("");
 
   const isOwn = !routeId || routeId === user?._id;
   const targetId = isOwn ? user?._id : routeId;
@@ -58,6 +59,7 @@ export function Profile() {
 
   const startEditNick = () => {
     setNickValue(displayUser.nickname);
+    setNickError("");
     setEditingNick(true);
   };
 
@@ -69,10 +71,18 @@ export function Profile() {
   const saveNick = async () => {
     if (!user || !nickValue.trim()) return;
     setNickSaving(true);
+    setNickError("");
     try {
       const updated = await api.updateUser(user._id, nickValue.trim());
       updateUser({ nickname: updated.nickname });
       setEditingNick(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (/E11000|duplicate key/i.test(msg)) {
+        setNickError("Ese nickname ya esta en uso");
+      } else {
+        setNickError(msg || "Error al guardar");
+      }
     } finally {
       setNickSaving(false);
     }
@@ -107,6 +117,7 @@ export function Profile() {
                 <button type="button" className="icon-btn" onClick={cancelEditNick} title="Cancelar">
                   ✕
                 </button>
+                {nickError && <span className="nick-error">{nickError}</span>}
               </>
             ) : (
               <>
