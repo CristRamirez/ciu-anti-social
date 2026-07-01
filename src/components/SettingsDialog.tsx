@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../context/ToastContext";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { Modal } from "./Modal";
 import type { Theme } from "../context/ThemeContext";
 
@@ -14,14 +16,17 @@ interface SettingsDialogProps {
 type Tab = "cuenta" | "aplicacion";
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
-  const { user, updateUser } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const { success } = useToast();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("cuenta");
   const [editingNick, setEditingNick] = useState(false);
   const [nickValue, setNickValue] = useState(user?.nickname ?? "");
   const [nickSaving, setNickSaving] = useState(false);
   const [nickError, setNickError] = useState("");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const startEditNick = () => {
     setNickValue(user?.nickname ?? "");
@@ -64,6 +69,20 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     if (next === theme) return;
     setTheme(next);
     success(next === "light" ? "Tema claro activado" : "Tema oscuro activado");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setDeleting(true);
+    try {
+      await api.deleteUser(user._id);
+      setConfirmDeleteOpen(false);
+      logout();
+      navigate("/register");
+    } catch (err) {
+      setDeleting(false);
+      setNickError(err instanceof Error ? err.message : "No se pudo eliminar la cuenta");
+    }
   };
 
   return (
@@ -116,6 +135,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 </div>
               )}
               {nickError && <span className="nick-error">{nickError}</span>}
+
+              <div className="settings-danger-zone">
+                <label className="settings-dialog-label">Zona de peligro</label>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setConfirmDeleteOpen(true)}
+                >
+                  Eliminar cuenta
+                </button>
+              </div>
             </div>
           )}
 
@@ -144,6 +174,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Eliminar cuenta"
+        message="¿Seguro? Esta accion no se puede deshacer"
+        confirmLabel="Eliminar"
+        danger
+        loading={deleting}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
     </Modal>
   );
 }

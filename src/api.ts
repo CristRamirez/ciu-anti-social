@@ -30,6 +30,8 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ nickname }),
     }),
+  deleteUser: (id: string) =>
+    request<void>(`/users/${id}`, { method: "DELETE" }),
 
   getPosts: () => request<Post[]>("/posts"),
   getPostsByUser: (userId: string) => request<Post[]>(`/posts/user/${userId}`),
