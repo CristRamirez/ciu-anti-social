@@ -24,6 +24,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+[data-theme="light"] {
+  --bg: #f4f5f8;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --border: #d9dce3;
+  --text: #1a1f27;
+  --muted: #6b7280;
+
+  --primary: #7c5cff;
+  --primary-2: #6a4aeb;
+  --accent: #0d9488;
+  --danger: #e0334f;
+  --ok: #2f9e64;
+
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1375,4 +1392,117 @@ code {
 
 .settings-icon-btn-danger:hover:not(:disabled) {
   color: var(--danger);
+}
+
+/* ── SettingsDialog ── */
+.settings-dialog {
+  display: flex;
+  gap: 20px;
+  min-height: 220px;
+}
+
+.settings-dialog-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 140px;
+  border-right: 1px solid var(--border);
+  padding-right: 12px;
+}
+
+.settings-dialog-tab {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.settings-dialog-tab:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.settings-dialog-tab.active {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.settings-dialog-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-dialog-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-dialog-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.theme-picker {
+  display: flex;
+  gap: 12px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.theme-card:hover {
+  border-color: var(--primary);
+}
+
+.theme-card.active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.theme-card-swatch {
+  width: 64px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.theme-card-swatch-light {
+  background: #f4f5f8;
+}
+
+.theme-card-swatch-dark {
+  background: #0f1419;
+}
+
+@media (max-width: 560px) {
+  .settings-dialog {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .settings-dialog-tabs {
+    flex-direction: row;
+    flex: initial;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 8px;
+  }
 }

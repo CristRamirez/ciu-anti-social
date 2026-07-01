@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { SearchUsers } from "./SearchUsers";
+import { SettingsDialog } from "./SettingsDialog";
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? "sidebar-link active" : "sidebar-link";
@@ -12,6 +13,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +33,11 @@ export function Sidebar() {
     setMenuOpen(false);
     logout();
     navigate("/login");
+  };
+
+  const handleOpenSettings = () => {
+    setMenuOpen(false);
+    setSettingsOpen(true);
   };
 
   return (
@@ -53,7 +60,7 @@ export function Sidebar() {
       <div className="sidebar-user" ref={menuRef}>
         {menuOpen && (
           <div className="sidebar-dropdown">
-            <button type="button" className="sidebar-dropdown-item">
+            <button type="button" className="sidebar-dropdown-item" onClick={handleOpenSettings}>
               Ajustes
             </button>
             <button
@@ -75,6 +82,7 @@ export function Sidebar() {
       </div>
 
       <SearchUsers open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   );
 }
