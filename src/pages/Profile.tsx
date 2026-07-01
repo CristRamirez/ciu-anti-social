@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import type { Post, User } from "../types";
 import { PostCard } from "../components/PostCard";
 
 export function Profile() {
   const { id: routeId } = useParams<{ id: string }>();
   const { user, logout, updateUser } = useAuth();
+  const { success } = useToast();
   const navigate = useNavigate();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -90,6 +92,7 @@ export function Profile() {
       const updated = await api.updateUser(user._id, nickValue.trim());
       updateUser({ nickname: updated.nickname });
       setEditingNick(false);
+      success("Nickname actualizado");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (/E11000|duplicate key/i.test(msg)) {

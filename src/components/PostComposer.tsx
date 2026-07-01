@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import type { Post, Tag } from "../types";
 
 interface PostComposerProps {
@@ -9,6 +10,7 @@ interface PostComposerProps {
 
 export function PostComposer({ onCreated }: PostComposerProps) {
   const { user } = useAuth();
+  const { success, info } = useToast();
   const [texto, setTexto] = useState("");
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagInputOpen, setTagInputOpen] = useState(false);
@@ -42,6 +44,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
       setTags([]);
       setImageUrls([]);
       onCreated?.(created);
+      success("Post creado exitosamente");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al publicar");
     } finally {
@@ -49,14 +52,18 @@ export function PostComposer({ onCreated }: PostComposerProps) {
     }
   };
 
-  const addImageInput = () => setImageUrls((prev) => [...prev, ""]);
+  const addImageInput = () => {
+    setImageUrls((prev) => [...prev, ""]);
+    info("Imagen agregada");
+  };
 
   const updateImageUrl = (idx: number, value: string) => {
     setImageUrls((prev) => prev.map((u, i) => (i === idx ? value : u)));
   };
 
   const removeImageUrl = (idx: number) => {
-    setImageUrls((prev) => prev.filter((_, i) => i !== idx));
+  setImageUrls((prev) => prev.filter((_, i) => i !== idx));
+  info("Imagen eliminada");
   };
 
   const removeTag = (id: string) => {

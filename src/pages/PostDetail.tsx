@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImageCarousel } from "../components/ImageCarousel";
 import { relativeTime } from "../utils/time";
@@ -107,6 +108,7 @@ export function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success } = useToast();
 
   const [post, setPost] = useState<Post | null>(null);
   const [images, setImages] = useState<PostImage[]>([]);
@@ -172,6 +174,7 @@ export function PostDetail() {
     setDeleting(true);
     try {
       await api.deletePost(post._id);
+      success("Post eliminado");
       navigate("/");
     } finally {
       setDeleting(false);
@@ -191,6 +194,7 @@ export function PostDetail() {
     try {
       await api.deletePostImage(user._id, post._id, img._id);
       setImages((prev) => prev.filter((_, i) => i !== imgIdx));
+      success("Imagen eliminada");
     } catch {
       // ignore
     }
@@ -203,6 +207,7 @@ export function PostDetail() {
       const img = await api.addPostImage(user._id, post._id, newImageUrl.trim());
       setImages((prev) => [...prev, img]);
       setNewImageUrl("");
+      success("Imagen agregada");
     } finally {
       setImageAdding(false);
     }
@@ -215,6 +220,7 @@ export function PostDetail() {
       const updated = await api.updatePost(user._id, post._id, { texto: editText, tags: editTags });
       setPost(updated);
       setEditing(false);
+      success("Post actualizado");
     } finally {
       setEditSaving(false);
     }
@@ -360,6 +366,7 @@ export function PostDetail() {
                 const fresh = await api.getComments(id!);
                 setComments(fresh);
                 textareaRef.current?.focus();
+                success("Comentario publicado");
               } catch (err) {
                 setCommentError(err instanceof Error ? err.message : "Error");
               } finally {

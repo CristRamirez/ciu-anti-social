@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 
 interface FieldErrors {
   nombre?: string;
@@ -15,6 +16,7 @@ const alphanumOnly = /^[a-zA-Z0-9]+$/;
 
 export function Register() {
   const { login } = useAuth();
+  const { success } = useToast();
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
@@ -78,6 +80,7 @@ export function Register() {
       const user = await api.createUser(nickname.trim());
       setOk("Cuenta creada. Te logueamos...");
       login(user);
+      success("Cuenta creada exitosamente");
       setTimeout(() => navigate("/"), 600);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "No se pudo crear el usuario";

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { relativeTime } from "../utils/time";
 import type { Comment, Post, PostImage, User } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -34,6 +35,7 @@ function getOwnerId(user: Post["user"]): string {
 
 export function PostCard({ post, images = [], commentsCount = 0, isNew = false, onVerMas, onUpdated, onDeleted }: PostCardProps) {
   const { user } = useAuth();
+  const { success } = useToast();
   const navigate = useNavigate();
   const owner = post.user as User | string;
   const fecha = post.fechaPublicacion ?? post.createdAt;
@@ -108,6 +110,7 @@ export function PostCard({ post, images = [], commentsCount = 0, isNew = false, 
       await api.deletePost(post._id);
       setConfirmDelete(false);
       onDeleted?.(post._id);
+      success("Post eliminado");
     } finally {
       setDeleting(false);
     }
@@ -120,6 +123,7 @@ export function PostCard({ post, images = [], commentsCount = 0, isNew = false, 
       const updated = await api.updatePost(user._id, post._id, { texto: editText });
       setEditing(false);
       onUpdated?.(updated);
+      success("Post actualizado");
     } finally {
       setSaving(false);
     }
@@ -160,6 +164,7 @@ export function PostCard({ post, images = [], commentsCount = 0, isNew = false, 
       await api.createComment(user._id, post._id, value);
       setNewComment("");
       await refreshComments();
+      success("Comentario publicado");
     } finally {
       setPostingComment(false);
     }
