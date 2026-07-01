@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import type { Post, User } from "../types";
-import { relativeTime } from "../utils/time";
+import { PostCard } from "../components/PostCard";
 
 export function Profile() {
   const { id: routeId } = useParams<{ id: string }>();
@@ -158,32 +158,11 @@ export function Profile() {
         <p className="muted">No hay publicaciones todavia.</p>
       ) : (
         <ul className="feed-list">
-          {posts.map((p) => {
-            const fecha = p.fechaPublicacion ?? p.createdAt;
-            return (
-              <li key={p._id}>
-                <article className="card post-card">
-                  <header className="post-head">
-                    <div className="post-avatar" aria-hidden>
-                      {displayUser.nickname.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="post-head-meta">
-                      <span className="post-nick">@{displayUser.nickname}</span>
-                      <span className="post-date muted">{relativeTime(fecha)}</span>
-                    </div>
-                  </header>
-                  <p className="post-text">{p.texto}</p>
-                  {p.tags && p.tags.length > 0 && (
-                    <ul className="post-tags">
-                      {p.tags.map((t) => (
-                        <li key={t._id} className="post-tag">#{t.nombre}</li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-              </li>
-            );
-          })}
+          {posts.map((p) => (
+            <li key={p._id}>
+              <PostCard post={p} />
+            </li>
+          ))}
         </ul>
       )}
     </div>
