@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { EmojiPicker } from "./EmojiPicker";
 import type { Post, Tag } from "../types";
 
 interface PostComposerProps {
@@ -196,6 +197,7 @@ export function PostComposer({ onCreated }: PostComposerProps) {
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="composer-actions">
+        <EmojiPicker onSelect={(emoji) => setTexto((prev) => prev + emoji)} />
         <button
           type="submit"
           className="btn btn-primary"

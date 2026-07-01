@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { relativeTime } from "../utils/time";
 import type { Comment, Post, PostImage, User } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { EmojiPicker } from "./EmojiPicker";
 import { ImageCarousel } from "./ImageCarousel";
 
 interface PostCardProps {
@@ -309,6 +310,7 @@ export function PostCard({ post, images = [], commentsCount = 0, isNew = false, 
             placeholder={user ? "Escribí un comentario..." : "Iniciá sesión para comentar"}
             disabled={!user || postingComment}
           />
+          <EmojiPicker onSelect={(emoji) => setNewComment((prev) => prev + emoji)} />
           <button
             type="submit"
             className="btn btn-primary"

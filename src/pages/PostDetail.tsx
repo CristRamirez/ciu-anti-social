@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { EmojiPicker } from "../components/EmojiPicker";
 import { ImageCarousel } from "../components/ImageCarousel";
 import { relativeTime } from "../utils/time";
 import type { Comment, Post, PostImage, User } from "../types";
@@ -388,6 +389,7 @@ export function PostDetail() {
               <span className="muted" style={{ fontSize: "0.8rem" }}>
                 {commentText.length}/255
               </span>
+              <EmojiPicker onSelect={(emoji) => setCommentText((prev) => (prev + emoji).slice(0, 255))} />
               <button
                 type="submit"
                 className="btn btn-primary"

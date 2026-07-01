@@ -928,6 +928,8 @@ code {
 .composer-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
 .composer-tags {
@@ -1456,6 +1458,63 @@ code {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+
+/* ── EmojiPicker ── */
+.emoji-picker {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.emoji-picker-trigger {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+
+.emoji-picker-trigger:hover {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.emoji-picker-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 272px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  z-index: 20;
+  animation: fadeIn 0.12s ease;
+}
+
+.emoji-picker-item {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+
+.emoji-picker-item:hover {
+  background: var(--surface-2);
 }
 
 .theme-picker {
