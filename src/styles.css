@@ -1730,7 +1730,20 @@ code {
     display: flex;
   }
 
+  .sidebar {
+    display: none !important;
+  }
+
+  .settings-fab {
+    display: none;
+  }
+
+  .brand-text {
+    display: none;
+  }
+
   .app-main {
+    margin-left: 0;
     padding-bottom: 80px;
   }
 }
