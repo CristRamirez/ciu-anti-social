@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { SearchUsers } from "./SearchUsers";
@@ -9,6 +9,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 }
 
 export function Sidebar() {
+  // Hooks primero, siempre en el mismo orden. Early return va DESPUES.
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -18,27 +19,27 @@ export function Sidebar() {
 
   useEffect(() => {
     if (!menuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
+    const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
-    }
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
-  if (!user) return null;
-
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setMenuOpen(false);
     logout();
     navigate("/login");
-  };
+  }, [logout, navigate]);
 
-  const handleOpenSettings = () => {
+  const handleOpenSettings = useCallback(() => {
     setMenuOpen(false);
     setSettingsOpen(true);
-  };
+  }, []);
+
+  if (!user) return null;
 
   return (
     <aside className="sidebar">
