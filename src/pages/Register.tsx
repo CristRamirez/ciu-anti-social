@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { SelectPop } from "../components/SelectPop";
 
 interface FieldErrors {
   nombre?: string;
@@ -14,6 +15,16 @@ interface FieldErrors {
 const onlyLetters = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 const alphanumOnly = /^[a-zA-Z0-9]+$/;
 
+const MONTHS = [
+  "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+];
+
+function daysInMonth(month: number, year: number): number {
+  if (!month || !year) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
 export function Register() {
   const { login } = useAuth();
   const { success } = useToast();
@@ -21,13 +32,34 @@ export function Register() {
 
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
-  const [fecha, setFecha] = useState("");
+  const [dia, setDia] = useState("");
+  const [mes, setMes] = useState("");
+  const [anio, setAnio] = useState("");
   const [nickname, setNickname] = useState("");
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(
+    () => Array.from({ length: 100 }, (_, i) => currentYear - i),
+    [currentYear]
+  );
+  const days = useMemo(
+    () =>
+      Array.from(
+        { length: daysInMonth(Number(mes), Number(anio)) },
+        (_, i) => i + 1
+      ),
+    [mes, anio]
+  );
+
+  const buildFecha = (): string => {
+    if (!dia || !mes || !anio) return "";
+    return `${anio}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+  };
 
   const validate = (): FieldErrors => {
     const e: FieldErrors = {};
@@ -40,7 +72,8 @@ export function Register() {
     else if (apellido.trim().length < 2) e.apellido = "Mínimo 2 caracteres.";
     else if (!onlyLetters.test(apellido.trim())) e.apellido = "Solo letras.";
 
-    if (!fecha) e.fecha = "La fecha es obligatoria.";
+    const fecha = buildFecha();
+    if (!dia || !mes || !anio) e.fecha = "La fecha es obligatoria.";
     else {
       const d = new Date(fecha);
       const today = new Date();
@@ -122,13 +155,32 @@ export function Register() {
         {errors.apellido && <span className="field-error">{errors.apellido}</span>}
 
         <label>Fecha de nacimiento</label>
-        <input
-          type="date"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          max={new Date().toISOString().slice(0, 10)}
-          className={errors.fecha ? "input-error" : ""}
-        />
+        <div className="date-picker">
+          <SelectPop
+            value={dia}
+            placeholder="Día"
+            error={!!errors.fecha}
+            onChange={setDia}
+            options={days.map((d) => ({ value: String(d), label: String(d) }))}
+          />
+          <SelectPop
+            value={mes}
+            placeholder="Mes"
+            error={!!errors.fecha}
+            onChange={setMes}
+            options={MONTHS.map((name, i) => ({
+              value: String(i + 1),
+              label: name,
+            }))}
+          />
+          <SelectPop
+            value={anio}
+            placeholder="Año"
+            error={!!errors.fecha}
+            onChange={setAnio}
+            options={years.map((y) => ({ value: String(y), label: String(y) }))}
+          />
+        </div>
         {errors.fecha && <span className="field-error">{errors.fecha}</span>}
 
         <label>Nickname</label>

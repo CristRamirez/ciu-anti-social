@@ -9,9 +9,9 @@ Estrategias de Persistencia).
 ## Integrantes
 
 - Cristian Ramirez
-- Lucas
-- Marcos
-- Nicolas B
+- Lucas Carrasco
+- Marcos Carrasco 
+- Nicolas Blanco 
 - Nicolas Dondero
 
 ## Repos
