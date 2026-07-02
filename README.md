@@ -14,6 +14,90 @@ Estrategias de Persistencia).
 - Nicolas B
 - Nicolas Dondero
 
+## Repos
+
+- **Frontend (este)**: https://github.com/CristRamirez/ciu-anti-social
+- **Backend**: https://github.com/EP-UnaHur-2026C1/anti-social-documental-tp-git-pull-la-septima
+
+## Levantar el proyecto desde cero
+
+Requisitos: Node 22+, Docker + Docker Compose, Git.
+
+### 1. Clonar los dos repos
+
+```bash
+git clone https://github.com/EP-UnaHur-2026C1/anti-social-documental-tp-git-pull-la-septima.git
+git clone https://github.com/CristRamirez/ciu-anti-social.git
+```
+
+### 2. Backend
+
+Entrá al repo del backend y creá un archivo `.env` con estas variables:
+
+```env
+PORT=3001
+ALLOWED_ORIGINS=http://localhost:5173
+MONGO_URL=mongodb://admin:admin1234@mongodb:27017/seriesMongo?authSource=admin
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=admin1234
+ME_USERNAME=web
+ME_PASSWORD=web1234
+REDIS_PASSWORD=redis1234
+```
+
+Levantá los servicios con Docker:
+
+```bash
+cd anti-social-documental-tp-git-pull-la-septima
+docker compose up -d
+```
+
+Esto levanta:
+- **App Node.js** en `http://localhost:3001`
+- **MongoDB** en `:27017`
+- **Mongo Express** en `http://localhost:8081`
+- **Redis** en `:6379`
+- **RedisInsight** en `http://localhost:5540`
+
+### 3. Frontend
+
+Entrá al repo del frontend y creá `.env`:
+
+```env
+VITE_API_URL=http://localhost:3001/api
+```
+
+Instalá dependencias y corré:
+
+```bash
+cd ciu-anti-social
+npm install
+npm run dev
+```
+
+App disponible en `http://localhost:5173`.
+
+## Variables de entorno
+
+### Backend (`.env` en la raíz del repo backend)
+
+| Variable | Descripción | Ejemplo |
+|--|--|--|
+| `PORT` | Puerto del servidor Node | `3001` |
+| `ALLOWED_ORIGINS` | Origen permitido por CORS (URL del front) | `http://localhost:5173` |
+| `MONGO_URL` | URL de conexión a MongoDB | `mongodb://admin:admin1234@mongodb:27017/seriesMongo?authSource=admin` |
+| `MONGO_ROOT_USERNAME` | Usuario admin de Mongo | `admin` |
+| `MONGO_ROOT_PASSWORD` | Password admin de Mongo | `admin1234` |
+| `ME_USERNAME` | Usuario Mongo Express | `web` |
+| `ME_PASSWORD` | Password Mongo Express | `web1234` |
+| `REDIS_PASSWORD` | Password de Redis | `redis1234` |
+
+### Frontend (`.env` en la raíz de este repo)
+
+| Variable | Descripción | Ejemplo |
+|--|--|--|
+| `VITE_API_URL` | URL base de la API backend | `http://localhost:3001/api` |
+
 ## Funcionalidades
 
 - Login simulado (`nickName` + contraseña fija `123456`).
@@ -53,12 +137,7 @@ Estrategias de Persistencia).
 | CSS variables        | Tema + tokens (verde y azul UNAHUR)              |
 | localStorage         | Persistencia de sesión y tema                    |
 
-## API
-
-Base URL configurable en `.env` con `VITE_API_URL` (default
-`http://localhost:3001/api`).
-
-Endpoints consumidos:
+## Endpoints consumidos
 
 | Método | Endpoint                                                  |
 | ------ | --------------------------------------------------------- |
@@ -82,34 +161,7 @@ Endpoints consumidos:
 | POST   | `/post-images/user/:userId/post/:postId/images`           |
 | DELETE | `/post-images/user/:userId/post/:postId/images/:id`       |
 
-## Correr en local
-
-### Backend
-
-Requiere el backend con **CORS habilitado** para `http://localhost:5173`.
-
-```bash
-cd ../anti-social-documental-tp-git-pull-la-septima
-docker compose up -d      # mongo + redis + app en :3001
-# o: npm install && npm run dev
-```
-
-### Frontend
-
-Requisitos: Node 22+.
-
-```bash
-npm install
-npm run dev              # http://localhost:5173
-```
-
-Variables (`.env`):
-
-```env
-VITE_API_URL=http://localhost:3001/api
-```
-
-## Build
+## Build de producción
 
 ```bash
 npm run build
@@ -151,6 +203,7 @@ src/
     PostDetail.tsx
     Profile.tsx
     Users.tsx
+    NewPost.tsx
   App.tsx                   router + providers + layout
   styles.css                estilos globales + tema
 ```
