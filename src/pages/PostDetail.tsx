@@ -1,431 +1,582 @@
-import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import type { Comment, Post, PostImage, Tag, User } from "../types";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { EmojiPicker } from "../components/EmojiPicker";
 import { ImageCarousel } from "../components/ImageCarousel";
+import { EmojiPicker } from "../components/EmojiPicker";
 import { relativeTime } from "../utils/time";
-import type { Comment, Post, PostImage, User } from "../types";
-
-function getOwnerNick(user: Post["user"], users: User[]): string {
-  if (typeof user === "object" && user !== null) return user.nickname;
-  const found = users.find((u) => u._id === user);
-  return found ? found.nickname : String(user);
-}
-
-function getAvatarLetter(nick: string): string {
-  return nick.charAt(0).toUpperCase() || "?";
-}
-
-
-interface CommentItemProps {
-  comment: Comment;
-  nick: string;
-  isOwn: boolean;
-  postId: string;
-  userId: string;
-  onUpdated: (c: Comment) => void;
-  onDeleted: (id: string) => void;
-}
-
-function CommentItem({ comment, nick, isOwn, postId, userId, onUpdated, onDeleted }: CommentItemProps) {
-  const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState(comment.texto);
-  const [saving, setSaving] = useState(false);
-  const [confirmDel, setConfirmDel] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const updated = await api.updateComment(userId, postId, comment._id, editText);
-      onUpdated(updated);
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await api.deleteComment(userId, postId, comment._id);
-      onDeleted(comment._id);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  return (
-    <li className="comment-item card">
-      <div className="comment-head">
-        <span className="post-nick">@{nick}</span>
-        <span className="post-date muted">{relativeTime(comment.createdAt)}</span>
-        {isOwn && !editing && (
-          <div className="comment-actions">
-            <button type="button" className="post-edit-btn" onClick={() => { setEditText(comment.texto); setEditing(true); }} title="Editar">✏️</button>
-            <button type="button" className="post-delete-btn" onClick={() => setConfirmDel(true)} title="Eliminar">🗑️</button>
-          </div>
-        )}
-      </div>
-
-      {editing ? (
-        <div className="post-edit-form">
-          <textarea
-            className="post-edit-textarea"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            rows={3}
-            autoFocus
-          />
-          <div className="post-edit-actions">
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancelar</button>
-            <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <p className="comment-text">{comment.texto}</p>
-      )}
-
-      <ConfirmDialog
-        open={confirmDel}
-        title="Eliminar comentario"
-        message="¿Seguro que querés eliminar este comentario?"
-        confirmLabel="Eliminar"
-        danger
-        loading={deleting}
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDel(false)}
-      />
-    </li>
-  );
-}
 
 export function PostDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { success } = useToast();
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [post, setPost] = useState<Post | null>(null);
   const [images, setImages] = useState<PostImage[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [allTags, setAllTags] = useState<import("../types").Tag[]>([]);
+  const [nickById, setNickById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [commentText, setCommentText] = useState("");
-  const [commentSending, setCommentSending] = useState(false);
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [text, setText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState("");
-  const [editTags, setEditTags] = useState<string[]>([]);
-  const [editSaving, setEditSaving] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [savingPost, setSavingPost] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
   const [newImageUrl, setNewImageUrl] = useState("");
-  const [imageAdding, setImageAdding] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [addingImage, setAddingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [savingCommentId, setSavingCommentId] = useState<string | null>(null);
+  const [commentEditError, setCommentEditError] = useState<string | null>(null);
+
+  const startEditComment = (id: string, current: string) => {
+    setEditingCommentId(id);
+    setCommentDraft(current);
+    setCommentEditError(null);
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    if (!user || !post) return;
+    if (!confirm("¿Eliminar este comentario?")) return;
+    try {
+      await api.deleteComment(user._id, post._id, id);
+      setComments((prev) => prev.filter((c) => c._id !== id));
+      success("Comentario eliminado");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo eliminar");
+    }
+  };
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setCommentEditError(null);
+  };
+  const saveEditComment = async (id: string) => {
+    if (!user || !post) return;
+    const value = commentDraft.trim();
+    if (!value) {
+      setCommentEditError("No puede quedar vacío.");
+      return;
+    }
+    setSavingCommentId(id);
+    setCommentEditError(null);
+    try {
+      await api.updateComment(user._id, post._id, id, value);
+      setComments((prev) =>
+        prev.map((c) => (c._id === id ? { ...c, texto: value } : c))
+      );
+      setEditingCommentId(null);
+      success("Comentario actualizado");
+    } catch (err) {
+      setCommentEditError(
+        err instanceof Error ? err.message : "No se pudo actualizar"
+      );
+    } finally {
+      setSavingCommentId(null);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     setLoading(true);
-    Promise.all([
-      api.getPosts(),
-      api.getComments(id),
-      api.getUsers(),
-      api.getTags(),
-    ])
-      .then(async ([posts, cmts, usrs, tags]) => {
+    setError(null);
+
+    api
+      .getPosts()
+      .then(async (posts) => {
         const found = posts.find((p) => p._id === id);
-        if (!found) { setError("Post no encontrado"); return; }
+        if (!found) throw new Error("Publicación no encontrada");
+        if (cancelled) return;
         setPost(found);
-        setComments(cmts);
-        setUsers(usrs);
-        setAllTags(tags);
-        const ownerId = typeof found.user === "object" ? found.user._id : found.user;
-        try {
-          const imgs = await api.getPostImages(ownerId, id);
-          setImages(imgs);
-        } catch {
-          setImages([]);
+
+        const userObj = typeof found.user === "object" ? (found.user as User) : null;
+        const userId = userObj?._id ?? (found.user as string);
+
+        const [imgs, cs] = await Promise.all([
+          api.getPostImages(userId, found._id).catch(() => []),
+          api.getCommentsByPost(found._id).catch(() => []),
+        ]);
+        if (cancelled) return;
+        setImages(imgs);
+        setComments(cs);
+
+        const ids = Array.from(new Set(cs.map((c) => c.user)));
+        const entries = await Promise.all(
+          ids.map(async (uid) => {
+            try {
+              const u = await api.getUser(uid);
+              return [uid, u?.nickname ?? "anon"] as const;
+            } catch {
+              return [uid, "anon"] as const;
+            }
+          })
+        );
+        if (!cancelled) {
+          setNickById(Object.fromEntries(entries));
         }
       })
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : "Error")
+      .catch((e) =>
+        !cancelled &&
+        setError(e instanceof Error ? e.message : "Error cargando post")
       )
-      .finally(() => setLoading(false));
+      .finally(() => !cancelled && setLoading(false));
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  if (loading) return <div className="container feed"><p className="muted">Cargando...</p></div>;
-  if (error || !post) return <div className="container feed"><div className="alert alert-error">{error ?? "No encontrado"}</div></div>;
+  const refreshComments = async () => {
+    if (!post) return;
+    const cs = await api.getCommentsByPost(post._id);
+    setComments(cs);
+    const missing = cs.filter((c) => !nickById[c.user]);
+    if (missing.length > 0) {
+      const entries = await Promise.all(
+        Array.from(new Set(missing.map((m) => m.user))).map(async (uid) => {
+          try {
+            const u = await api.getUser(uid);
+            return [uid, u?.nickname ?? "anon"] as const;
+          } catch {
+            return [uid, "anon"] as const;
+          }
+        })
+      );
+      setNickById((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    }
+  };
 
-  const ownerNick = getOwnerNick(post.user, users);
-  const fecha = post.fechaPublicacion ?? post.createdAt;
-  const ownerId = typeof post.user === "object" ? post.user._id : post.user;
-  const isOwner = !!user && user._id === ownerId;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setOkMsg(null);
+    if (!user) {
+      setFormError("Iniciá sesión para comentar.");
+      return;
+    }
+    if (!text.trim()) {
+      setFormError("El comentario no puede estar vacío.");
+      return;
+    }
+    if (!post) return;
+    setSubmitting(true);
+    try {
+      await api.createComment(user._id, post._id, text.trim());
+      setText("");
+      setOkMsg("Comentario publicado.");
+      success("Comentario publicado");
+      await refreshComments();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Error al comentar");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  const handleDeletePost = async () => {
+  if (loading) return <div className="container muted">Cargando...</div>;
+  if (error) return <div className="container alert alert-error">{error}</div>;
+  if (!post) return null;
+
+  const userObj = typeof post.user === "object" ? (post.user as User) : null;
+  const ownerId = userObj?._id ?? (post.user as string);
+  const isOwner = !!user && ownerId === user._id;
+
+  const startEdit = () => {
+    setDraft(post.texto);
+    setSelectedTagIds((post.tags ?? []).map((t) => t._id));
+    setPostError(null);
+    setEditing(true);
+    if (allTags.length === 0) {
+      api.getTags().then(setAllTags).catch(() => setAllTags([]));
+    }
+  };
+  const cancelEdit = () => {
+    setEditing(false);
+    setPostError(null);
+  };
+  const toggleTag = (id: string) =>
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
+  const savePost = async () => {
+    if (!user || !post) return;
+    const value = draft.trim();
+    if (!value) {
+      setPostError("No puede quedar vacío.");
+      return;
+    }
+    const currentTagIds = (post.tags ?? []).map((t) => t._id).sort().join(",");
+    const newTagIds = [...selectedTagIds].sort().join(",");
+    const textChanged = value !== post.texto;
+    const tagsChanged = currentTagIds !== newTagIds;
+    if (!textChanged && !tagsChanged) {
+      setEditing(false);
+      return;
+    }
+    setSavingPost(true);
+    setPostError(null);
+    try {
+      const updated = await api.updatePost(user._id, post._id, value, selectedTagIds);
+      setPost({ ...post, texto: updated.texto, tags: updated.tags ?? [] });
+      success("Post actualizado");
+      setEditing(false);
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : "No se pudo guardar");
+    } finally {
+      setSavingPost(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!post || !user) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await api.deletePost(post._id);
       success("Post eliminado");
+      window.dispatchEvent(
+        new CustomEvent("post-deleted", { detail: post._id })
+      );
       navigate("/");
-    } finally {
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "No se pudo eliminar");
       setDeleting(false);
     }
   };
 
-  const toggleEditTag = (tagId: string) => {
-    setEditTags((prev) =>
-      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
-    );
+  const handleAddImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !post) return;
+    const url = newImageUrl.trim();
+    if (!url) {
+      setImageError("Pegá una URL.");
+      return;
+    }
+    setAddingImage(true);
+    setImageError(null);
+    try {
+      const created = await api.createPostImage(user._id, post._id, url);
+      setImages((prev) => [...prev, created]);
+      setNewImageUrl("");
+      success("Imagen agregada");
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "No se pudo agregar");
+    } finally {
+      setAddingImage(false);
+    }
   };
 
-  const handleDeleteImage = async (imgIdx: number) => {
-    if (!user) return;
-    const img = images[imgIdx];
+  const handleDeleteImage = async (i: number) => {
+    if (!user || !post) return;
+    const img = images[i];
     if (!img) return;
     try {
       await api.deletePostImage(user._id, post._id, img._id);
-      setImages((prev) => prev.filter((_, i) => i !== imgIdx));
+      setImages((prev) => prev.filter((_, idx) => idx !== i));
       success("Imagen eliminada");
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleAddImage = async () => {
-    if (!user || !newImageUrl.trim()) return;
-    setImageAdding(true);
-    try {
-      const img = await api.addPostImage(user._id, post._id, newImageUrl.trim());
-      setImages((prev) => [...prev, img]);
-      setNewImageUrl("");
-      success("Imagen agregada");
-    } finally {
-      setImageAdding(false);
-    }
-  };
-
-  const handleEditSave = async () => {
-    if (!user) return;
-    setEditSaving(true);
-    try {
-      const updated = await api.updatePost(user._id, post._id, { texto: editText, tags: editTags });
-      setPost(updated);
-      setEditing(false);
-      success("Post actualizado");
-    } finally {
-      setEditSaving(false);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "No se pudo eliminar");
     }
   };
 
   return (
-    <div className="container feed">
-      <button type="button" className="btn btn-ghost detail-back" onClick={() => navigate(-1)}>
-        ← Volver
-      </button>
+    <div className="container detail">
+      <Link to="/" className="link-back">← Volver al feed</Link>
 
-      <article className="card post-detail-card">
+      <article className="card">
         <header className="post-head">
-          <div className="post-avatar">{getAvatarLetter(ownerNick)}</div>
-
-          <div className="post-head-meta">
-            <span className="post-nick">@{ownerNick}</span>
-            <span className="post-date muted">{relativeTime(fecha)}</span>
-          </div>
+          <Link to={`/u/${ownerId}`} className="post-head-link">
+            <div className="avatar">{userObj?.nickname?.[0]?.toUpperCase() ?? "?"}</div>
+            <div>
+              <div className="post-user-row">
+                <span className="post-user">@{userObj?.nickname ?? "anon"}</span>
+                {(post.fechaPublicacion ?? post.createdAt) && (
+                  <span className="post-time">
+                    · {relativeTime(post.fechaPublicacion ?? post.createdAt)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </Link>
           {isOwner && !editing && (
-            <>
+            <div className="post-owner-actions">
               <button
                 type="button"
-                className="post-edit-btn"
-                onClick={() => { setEditText(post.texto); setEditTags(post.tags.map((t) => t._id)); setEditing(true); }}
-                title="Editar"
+                className="icon-btn small post-edit-btn"
+                onClick={startEdit}
+                title="Editar post"
+                aria-label="Editar post"
               >
-                ✏️
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
               </button>
               <button
                 type="button"
-                className="post-delete-btn"
-                onClick={() => setConfirmDelete(true)}
-                title="Eliminar"
+                className="icon-btn small danger"
+                onClick={() => setConfirmOpen(true)}
+                disabled={deleting}
+                title="Eliminar post"
+                aria-label="Eliminar post"
               >
-                🗑️
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
               </button>
-            </>
+            </div>
           )}
         </header>
 
-        {images.length > 0 && (
-          <ImageCarousel
-            urls={images.map((i) => i.url_image)}
-            height={560}
-            onDelete={editing ? handleDeleteImage : undefined}
-          />
-        )}
-
-        {editing && (
-          <div className="image-add-row">
-            <input
-              className="image-add-input"
-              type="url"
-              placeholder="URL de imagen..."
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={handleAddImage}
-              disabled={imageAdding || !newImageUrl.trim()}
-            >
-              {imageAdding ? "..." : "Agregar"}
-            </button>
-          </div>
-        )}
-
         {editing ? (
-          <div className="post-edit-form">
+          <div className="post-edit">
             <textarea
-              className="post-edit-textarea"
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              rows={5}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={255}
+              rows={4}
               autoFocus
+              disabled={savingPost}
             />
             {allTags.length > 0 && (
-              <div className="edit-tag-picker">
+              <div className="tag-picker">
                 {allTags.map((t) => (
                   <button
-                    key={t._id}
                     type="button"
-                    className={`edit-tag-chip${editTags.includes(t._id) ? " selected" : ""}`}
-                    onClick={() => toggleEditTag(t._id)}
+                    key={t._id}
+                    className={`tag-chip ${selectedTagIds.includes(t._id) ? "active" : ""}`}
+                    onClick={() => toggleTag(t._id)}
+                    disabled={savingPost}
                   >
                     #{t.nombre}
                   </button>
                 ))}
               </div>
             )}
+            {postError && <div className="alert alert-error">{postError}</div>}
             <div className="post-edit-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
+              <span className="muted small">{draft.length}/255</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-small"
+                onClick={cancelEdit}
+                disabled={savingPost}
+              >
                 Cancelar
               </button>
-              <button type="button" className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
-                {editSaving ? "Guardando..." : "Guardar"}
+              <button
+                type="button"
+                className="btn btn-primary btn-small"
+                onClick={savePost}
+                disabled={savingPost}
+              >
+                {savingPost ? "..." : "Guardar"}
               </button>
             </div>
           </div>
         ) : (
-          <p className="post-text detail-text">{post.texto}</p>
+          <p className="post-text big">{post.texto}</p>
         )}
 
-        {post.tags && post.tags.length > 0 && (
-          <ul className="post-tags">
+        {images.length > 0 && (
+          <ImageCarousel
+            urls={images.map((i) => i.url_image)}
+            height={560}
+            onDelete={isOwner && editing ? handleDeleteImage : undefined}
+          />
+        )}
+
+        {isOwner && editing && (
+          <form className="add-image" onSubmit={handleAddImage}>
+            <input
+              type="url"
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+              placeholder="URL de imagen"
+              disabled={addingImage}
+            />
+            <button
+              type="submit"
+              className="btn btn-primary btn-small"
+              disabled={addingImage || !newImageUrl.trim()}
+            >
+              {addingImage ? "..." : "Agregar"}
+            </button>
+            {imageError && <div className="alert alert-error">{imageError}</div>}
+          </form>
+        )}
+
+        {post.tags?.length > 0 && (
+          <div className="tags">
             {post.tags.map((t) => (
-              <li key={t._id} className="post-tag">#{t.nombre}</li>
+              <span className="tag" key={t._id}>#{t.nombre}</span>
             ))}
-          </ul>
+          </div>
         )}
       </article>
 
       <ConfirmDialog
-        open={confirmDelete}
-        title="Eliminar post"
-        message="¿Seguro que querés eliminar este post?"
+        open={confirmOpen}
+        title="Eliminar publicación"
+        message="¿Seguro que querés eliminar este post? Esta acción no se puede deshacer."
         confirmLabel="Eliminar"
         danger
         loading={deleting}
-        onConfirm={handleDeletePost}
-        onCancel={() => setConfirmDelete(false)}
+        onCancel={() => {
+          if (!deleting) {
+            setConfirmOpen(false);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={handleDelete}
       />
+      {deleteError && <div className="alert alert-error">{deleteError}</div>}
 
-      <section className="detail-comments">
-        <h2 className="detail-comments-title">
-          {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
-        </h2>
+      <section className="card">
+        <h2>Comentarios ({comments.length})</h2>
 
-        {user && (
-          <form
-            className="comment-form card"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const texto = commentText.trim();
-              if (!texto) return;
-              setCommentSending(true);
-              setCommentError(null);
-              try {
-                await api.createComment(user._id, id!, texto);
-                setCommentText("");
-                const fresh = await api.getComments(id!);
-                setComments(fresh);
-                textareaRef.current?.focus();
-                success("Comentario publicado");
-              } catch (err) {
-                setCommentError(err instanceof Error ? err.message : "Error");
-              } finally {
-                setCommentSending(false);
+        <form onSubmit={handleSubmit} className="comment-form">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={
+              user ? "Escribí un comentario..." : "Iniciá sesión para comentar"
+            }
+            disabled={!user || submitting}
+            maxLength={255}
+            rows={3}
+          />
+          {formError && <div className="alert alert-error">{formError}</div>}
+          {okMsg && <div className="alert alert-ok">{okMsg}</div>}
+          <div className="comment-form-foot">
+            <EmojiPicker
+              onSelect={(em) =>
+                setText((t) => (t.length + em.length <= 255 ? t + em : t))
               }
-            }}
-          >
-            <textarea
-              ref={textareaRef}
-              className="comment-textarea"
-              placeholder="Escribí un comentario..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value.slice(0, 255))}
-              rows={3}
-              maxLength={255}
             />
-            {commentError && <p className="alert alert-error">{commentError}</p>}
-            <div className="comment-form-foot">
-              <span className="muted" style={{ fontSize: "0.8rem" }}>
-                {commentText.length}/255
-              </span>
-              <EmojiPicker onSelect={(emoji) => setCommentText((prev) => (prev + emoji).slice(0, 255))} />
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={commentSending || !commentText.trim()}
-              >
-                {commentSending ? "Enviando..." : "Comentar"}
-              </button>
-            </div>
-          </form>
-        )}
+            <span className="muted">{text.length}/255</span>
+            <button
+              className="btn btn-primary btn-pill"
+              disabled={!user || submitting}
+            >
+              {submitting ? "Enviando..." : "Comentar"}
+            </button>
+          </div>
+        </form>
 
-        {!user && (
-          <p className="muted" style={{ fontSize: "0.9rem" }}>
-            Iniciá sesión para comentar.
-          </p>
+        {comments.length === 0 && (
+          <div className="muted">Todavía no hay comentarios.</div>
         )}
-
-        {comments.length === 0 && <p className="muted">Sin comentarios todavía.</p>}
 
         <ul className="comment-list">
-          {comments.map((c) => (
-            <CommentItem
-              key={c._id}
-              comment={c}
-              nick={users.find((u) => u._id === c.user)?.nickname ?? c.user}
-              isOwn={!!user && user._id === c.user}
-              postId={id!}
-              userId={user?._id ?? ""}
-              onUpdated={(updated) =>
-                setComments((prev) => prev.map((x) => (x._id === updated._id ? updated : x)))
-              }
-              onDeleted={(cid) =>
-                setComments((prev) => prev.filter((x) => x._id !== cid))
-              }
-            />
-          ))}
+          {comments.map((c) => {
+            const isCommentOwner = !!user && c.user === user._id;
+            const isEditing = editingCommentId === c._id;
+            return (
+              <li key={c._id} className="comment">
+                <Link to={`/u/${c.user}`} className="comment-avatar-link">
+                  <div className="avatar small">
+                    {(nickById[c.user] ?? "?")[0].toUpperCase()}
+                  </div>
+                </Link>
+                <div className="comment-body">
+                  <div className="comment-row">
+                    <Link to={`/u/${c.user}`} className="comment-user">
+                      @{nickById[c.user] ?? "anon"}
+                    </Link>
+                    {isCommentOwner && !isEditing && (
+                      <div className="comment-actions">
+                        <button
+                          type="button"
+                          className="icon-btn small"
+                          onClick={() => startEditComment(c._id, c.texto)}
+                          title="Editar comentario"
+                          aria-label="Editar comentario"
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn small danger"
+                          onClick={() => handleDeleteComment(c._id)}
+                          title="Eliminar comentario"
+                          aria-label="Eliminar comentario"
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <div className="comment-edit">
+                      <textarea
+                        value={commentDraft}
+                        onChange={(e) => setCommentDraft(e.target.value)}
+                        maxLength={255}
+                        rows={2}
+                        autoFocus
+                        disabled={savingCommentId === c._id}
+                      />
+                      {commentEditError && (
+                        <div className="alert alert-error">{commentEditError}</div>
+                      )}
+                      <div className="comment-edit-actions">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-small"
+                          onClick={cancelEditComment}
+                          disabled={savingCommentId === c._id}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-small"
+                          onClick={() => saveEditComment(c._id)}
+                          disabled={savingCommentId === c._id}
+                        >
+                          {savingCommentId === c._id ? "..." : "Guardar"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="comment-text">{c.texto}</div>
+                  )}
+                  {c.createdAt && (
+                    <div className="post-date">{relativeTime(c.createdAt)}</div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
     </div>

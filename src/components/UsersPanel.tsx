@@ -1,62 +1,73 @@
- import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import type { User } from "../types";
 
 function shuffle<T>(arr: T[]): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return copy;
+  return a;
 }
 
 export function UsersPanel() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getUsers()
-      .then((data) => {
-        setTotal(data.length);
-        const shuffled = shuffle(data);
-        setUsers(shuffled.slice(0, 5));
+    let cancelled = false;
+    api
+      .getUsers()
+      .then((all) => {
+        if (cancelled) return;
+        setTotal(all.length);
+        setUsers(shuffle(all).slice(0, 5));
       })
-      .catch(() => setUsers([]));
+      .catch(() => !cancelled && setUsers([]))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!authUser) return;
     setUsers((prev) =>
-      prev.map((u) => (u._id === user._id ? { ...u, nickname: user.nickname } : u))
+      prev.map((u) =>
+        u._id === authUser._id ? { ...u, nickname: authUser.nickname } : u
+      )
     );
-  }, [user]);
+  }, [authUser?._id, authUser?.nickname]);
 
-  if (!user) return null;
+  if (!authUser) return null;
 
   return (
     <aside className="users-panel">
-      <h3 className="users-panel-title">Usuarios</h3>
-      <ul className="users-panel-list">
-        {users.map((u) => (
-          <li key={u._id}>
-            <Link to={`/u/${u._id}`} className="users-panel-item">
-              <div className="users-panel-avatar" aria-hidden>
-                {u.nickname.charAt(0).toUpperCase()}
-              </div>
-              <span className="post-nick">@{u.nickname}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {total > 5 && (
-        <Link to="/users" className="users-panel-more">
-          Ver mas
-        </Link>
-      )}
+      <div className="users-card">
+        <h3 className="users-title">Otros perfiles</h3>
+        {loading && <div className="muted small">Cargando...</div>}
+        {!loading && users.length === 0 && (
+          <div className="muted small">No hay usuarios.</div>
+        )}
+        <ul className="users-list">
+          {users.map((u) => (
+            <li key={u._id} className="users-item">
+              <Link to={`/u/${u._id}`} className="users-item-link">
+                <div className="avatar small">{u.nickname[0].toUpperCase()}</div>
+                <span className="users-nick">@{u.nickname}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {total > users.length && (
+          <Link to="/users" className="users-more">Ver más</Link>
+        )}
+      </div>
     </aside>
   );
 }

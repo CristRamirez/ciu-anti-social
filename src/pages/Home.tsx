@@ -4,191 +4,171 @@ import { PostCard } from "../components/PostCard";
 import { PostComposer } from "../components/PostComposer";
 import type { Post, Tag } from "../types";
 
-type SortMode = "latest" | "popular";
-
-function getPostDate(p: Post): number {
-  const raw = p.fechaPublicacion ?? p.createdAt;
-  return raw ? new Date(raw).getTime() : 0;
-}
+const PAGE_SIZE = 10;
 
 export function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [tagFilter, setTagFilter] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>("latest");
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
-  const [tagFilter, setTagFilter] = useState<string>("");
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
-
-  const markNew = (id: string) => {
-    setNewIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    setTimeout(() => {
-      setNewIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }, 600);
-  };
+  const [sortMode, setSortMode] = useState<"latest" | "popular">("latest");
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    api
-      .getPosts()
-      .then((data) => {
+    Promise.all([api.getPosts(), api.getTags()])
+      .then(async ([ps, ts]) => {
         if (cancelled) return;
-        const sorted = [...data].sort((a, b) => getPostDate(b) - getPostDate(a));
-        setPosts(sorted);
+        setPosts(ps);
+        setTags(ts);
+        const entries = await Promise.all(
+          ps.map(async (p) => {
+            try {
+              const cs = await api.getCommentsByPost(p._id);
+              return [p._id, cs.length] as const;
+            } catch {
+              return [p._id, 0] as const;
+            }
+          })
+        );
+        if (!cancelled) setCommentCounts(Object.fromEntries(entries));
       })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Error cargando posts");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (posts.length === 0) return;
-    let cancelled = false;
-    Promise.all(
-      posts.map((p) =>
-        api
-          .getComments(p._id)
-          .then((cs) => [p._id, cs.length] as const)
-          .catch(() => [p._id, 0] as const)
+      .catch((e) =>
+        !cancelled && setError(e instanceof Error ? e.message : "Error cargando feed")
       )
-    ).then((entries) => {
-      if (cancelled) return;
-      setCommentCounts(Object.fromEntries(entries));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [posts]);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .getTags()
-      .then((data) => {
-        if (!cancelled) setTags(data);
-      })
-      .catch(() => {
-        // tags son auxiliares, no rompen la home
-      });
+      .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const filteredPosts = useMemo(() => {
-    if (!tagFilter) return posts;
-    return posts.filter((p) => p.tags?.some((t) => t._id === tagFilter));
-  }, [posts, tagFilter]);
+  useEffect(() => {
+    const created = (e: Event) => {
+      const ev = e as CustomEvent<Post>;
+      if (ev.detail) {
+        setPosts((prev) => [ev.detail, ...prev]);
+        setNewIds((prev) => new Set(prev).add(ev.detail._id));
+        setTimeout(() => {
+          setNewIds((prev) => {
+            const next = new Set(prev);
+            next.delete(ev.detail._id);
+            return next;
+          });
+        }, 600);
+      }
+    };
+    const deleted = (e: Event) => {
+      const ev = e as CustomEvent<string>;
+      if (ev.detail) setPosts((prev) => prev.filter((p) => p._id !== ev.detail));
+    };
+    window.addEventListener("post-created", created as EventListener);
+    window.addEventListener("post-deleted", deleted as EventListener);
+    return () => {
+      window.removeEventListener("post-created", created as EventListener);
+      window.removeEventListener("post-deleted", deleted as EventListener);
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const base = tagFilter
+      ? posts.filter((p) => p.tags?.some((t) => t._id === tagFilter))
+      : posts;
+    if (sortMode === "popular") {
+      return [...base].sort(
+        (a, b) => (commentCounts[b._id] ?? 0) - (commentCounts[a._id] ?? 0)
+      );
+    }
+    return [...base].sort((a, b) => {
+      const da = new Date(a.fechaPublicacion ?? a.createdAt ?? 0).getTime();
+      const db = new Date(b.fechaPublicacion ?? b.createdAt ?? 0).getTime();
+      return db - da;
+    });
+  }, [posts, tagFilter, sortMode, commentCounts]);
 
   useEffect(() => {
-    setVisibleCount(10);
-  }, [sortMode, tagFilter]);
+    setVisibleCount(PAGE_SIZE);
+  }, [tagFilter, sortMode]);
 
-  const sortedPosts = useMemo(() => {
-    const copy = [...filteredPosts];
-    if (sortMode === "popular") {
-      copy.sort((a, b) => (commentCounts[b._id] ?? 0) - (commentCounts[a._id] ?? 0));
-    } else {
-      copy.sort((a, b) => getPostDate(b) - getPostDate(a));
-    }
-    return copy;
-  }, [filteredPosts, sortMode, commentCounts]);
-
-  if (loading) {
-    return (
-      <div className="container feed">
-        <p className="muted">Cargando...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container feed">
-        <div className="alert alert-error">{error}</div>
-      </div>
-    );
-  }
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   return (
-    <div className="container feed">
-      <h1 className="feed-title">Feed</h1>
+    <div className="home">
       <PostComposer
-        onCreated={(post) => {
-          setPosts((prev) => [post, ...prev]);
-          markNew(post._id);
+        onCreated={(p) => {
+          setPosts((prev) => [p, ...prev]);
+          setNewIds((prev) => new Set(prev).add(p._id));
+          setTimeout(() => {
+            setNewIds((prev) => {
+              const next = new Set(prev);
+              next.delete(p._id);
+              return next;
+            });
+          }, 600);
         }}
       />
 
-      <div className="feed-tabs">
-        <button
-          type="button"
-          className={`feed-tab ${sortMode === "latest" ? "active" : ""}`}
-          onClick={() => setSortMode("latest")}
-        >
-          Últimos
-        </button>
-        <button
-          type="button"
-          className={`feed-tab ${sortMode === "popular" ? "active" : ""}`}
-          onClick={() => setSortMode("popular")}
-        >
-          Populares
-        </button>
-        <select
-          className="feed-tag-filter"
-          value={tagFilter}
-          onChange={(e) => setTagFilter(e.target.value)}
-        >
-          <option value="">Todas las etiquetas</option>
-          {tags.map((t) => (
-            <option key={t._id} value={t._id}>
-              #{t.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {sortedPosts.length === 0 ? (
-        <p className="muted">No hay posts todavía.</p>
-      ) : (
-        <>
-          <ul className="feed-list">
-            {sortedPosts.slice(0, visibleCount).map((p) => (
-              <li key={p._id}>
-                <PostCard post={p} commentsCount={commentCounts[p._id] ?? 0} isNew={newIds.has(p._id)} />
-              </li>
-            ))}
-          </ul>
-          {sortedPosts.length > visibleCount && (
+      <section className="feed-section">
+        <header className="feed-head">
+          <div className="feed-tabs">
             <button
               type="button"
-              className="btn btn-ghost feed-load-more"
-              onClick={() => setVisibleCount((n) => n + 10)}
+              className={`feed-tab ${sortMode === "latest" ? "active" : ""}`}
+              onClick={() => setSortMode("latest")}
             >
-              Cargar más ({sortedPosts.length - visibleCount} restantes)
+              Últimos
             </button>
-          )}
-        </>
-      )}
+            <button
+              type="button"
+              className={`feed-tab ${sortMode === "popular" ? "active" : ""}`}
+              onClick={() => setSortMode("popular")}
+            >
+              Populares
+            </button>
+          </div>
+          <div className="filter">
+            <label htmlFor="tag-filter">Etiqueta</label>
+            <select
+              id="tag-filter"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+            >
+              <option value="">Todas</option>
+              {tags.map((t) => (
+                <option key={t._id} value={t._id}>#{t.nombre}</option>
+              ))}
+            </select>
+          </div>
+        </header>
+
+        {loading && <div className="muted">Cargando feed...</div>}
+        {error && <div className="alert alert-error">{error}</div>}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="muted">No hay publicaciones todavía.</div>
+        )}
+
+        <div className="feed">
+          {visible.map((p) => (
+            <PostCard key={p._id} post={p} isNew={newIds.has(p._id)} />
+          ))}
+        </div>
+
+        {hasMore && (
+          <div className="load-more">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            >
+              Cargar más ({filtered.length - visibleCount} restantes)
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

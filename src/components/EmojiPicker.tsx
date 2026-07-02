@@ -1,71 +1,64 @@
 import { useEffect, useRef, useState } from "react";
 
-interface EmojiPickerProps {
+interface Props {
   onSelect: (emoji: string) => void;
 }
 
 const EMOJIS = [
-  "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-  "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
-  "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
-  "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "😏", "😒",
-  "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖",
-  "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡",
-  "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰",
-  "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶",
-  "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮",
-  "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴",
-  "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠",
-  "😈", "👍",
+  "😀","😁","😂","🤣","😅","😊","😇","🥰","😍","🤩",
+  "😘","😜","🤪","🤨","🧐","🤓","😎","🥳","😏","😒",
+  "😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩",
+  "🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵",
+  "🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫",
+  "🤥","😶","😐","😑","😬","🙄","😯","😲","😴","🤤",
+  "👍","👎","👏","🙌","🙏","💪","🤝","✌️","🤞","🤟",
+  "❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💯",
+  "🔥","✨","⭐","🌟","💫","🎉","🎊","🎁","🎂","🥂",
 ];
 
-export function EmojiPicker({ onSelect }: EmojiPickerProps) {
+export function EmojiPicker({ onSelect }: Props) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  const handleSelect = (emoji: string) => {
-    onSelect(emoji);
-    setOpen(false);
-  };
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
-    <div className="emoji-picker" ref={wrapRef}>
+    <div className="emoji-picker" ref={ref}>
       <button
         type="button"
-        className="emoji-picker-trigger"
-        onClick={() => setOpen((o) => !o)}
+        className="emoji-trigger"
+        onClick={() => setOpen((v) => !v)}
         title="Emojis"
-        aria-label="Insertar emoji"
+        aria-label="Emojis"
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-          <circle cx="9" cy="10" r="1.2" fill="currentColor" />
-          <circle cx="15" cy="10" r="1.2" fill="currentColor" />
-          <path d="M8 14.5c1 1.2 2.4 1.8 4 1.8s3-.6 4-1.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+          <line x1="9" y1="9" x2="9.01" y2="9" />
+          <line x1="15" y1="9" x2="15.01" y2="9" />
         </svg>
       </button>
-
       {open && (
-        <div className="emoji-picker-popover">
-          {EMOJIS.map((emoji, idx) => (
+        <div className="emoji-pop" role="dialog">
+          {EMOJIS.map((e) => (
             <button
-              key={`${emoji}-${idx}`}
+              key={e}
               type="button"
-              className="emoji-picker-item"
-              onClick={() => handleSelect(emoji)}
+              className="emoji-item"
+              onClick={() => {
+                onSelect(e);
+                setOpen(false);
+              }}
             >
-              {emoji}
+              {e}
             </button>
           ))}
         </div>

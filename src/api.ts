@@ -18,6 +18,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // users
   getUsers: () => request<User[]>("/users"),
   getUser: (id: string) => request<User>(`/users/${id}`),
   createUser: (nickname: string) =>
@@ -31,79 +32,84 @@ export const api = {
       body: JSON.stringify({ nickname }),
     }),
   deleteUser: (id: string) =>
-    request<void>(`/users/${id}`, { method: "DELETE" }),
+    request<{ message: string }>(`/users/${id}`, { method: "DELETE" }),
 
+  // posts
   getPosts: () => request<Post[]>("/posts"),
-  getPostsByUser: (userId: string) => request<Post[]>(`/posts/user/${userId}`),
-  getTags: () => request<Tag[]>("/tags"),
-
-  createPostForUser: (userId: string, texto: string, tags: string[] = []) =>
+  getPostsByUser: (userId: string) =>
+    request<Post[]>(`/posts/user/${userId}`),
+  getPost: (userId: string, postId: string) =>
+    request<Post>(`/posts/user/${userId}/post/${postId}`),
+  createPost: (userId: string, texto: string, tags: string[]) =>
     request<Post>(`/posts/user/${userId}`, {
       method: "POST",
       body: JSON.stringify({ texto, tags }),
     }),
+  updatePost: (
+    userId: string,
+    postId: string,
+    texto: string,
+    tags?: string[]
+  ) =>
+    request<Post>(`/posts/user/${userId}/post/${postId}`, {
+      method: "PUT",
+      body: JSON.stringify(tags ? { texto, tags } : { texto }),
+    }),
+  deletePost: (postId: string) =>
+    request<{ message: string }>(`/posts/${postId}`, { method: "DELETE" }),
 
+  // tags
+  getTags: () => request<Tag[]>("/tags"),
   createTag: (nombre: string) =>
     request<Tag>("/tags", {
       method: "POST",
       body: JSON.stringify({ nombre }),
     }),
-
   updateTag: (id: string, nombre: string) =>
-  request<Tag>(`/tags/${id}`, {
-    method: "PUT",
-    body: JSON.stringify({ nombre }),
-  }),
-
+    request<Tag>(`/tags/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ nombre }),
+    }),
   deleteTag: (id: string) =>
-    request<void>(`/tags/${id}`, {
-      method: "DELETE",
-  }),
+    request<{ message: string }>(`/tags/${id}`, { method: "DELETE" }),
 
-  createPost: (userId: string, texto: string, tags: string[] = []) =>
-    request<Post>("/posts", {
-      method: "POST",
-      body: JSON.stringify({ texto, tags, user: userId }),
-    }),
-
-  getPostImages: (userId: string, postId: string) =>
-    request<PostImage[]>(`/post-images/user/${userId}/post/${postId}/images`),
-
-  getComments: (postId: string) =>
+  // comments
+  getCommentsByPost: (postId: string) =>
     request<Comment[]>(`/comments/post/${postId}`),
-
   createComment: (userId: string, postId: string, texto: string) =>
-    request<Comment>(`/comments/user/${userId}/post/${postId}`, {
-      method: "POST",
-      body: JSON.stringify({ texto }),
-    }),
-
-  updatePost: (userId: string, postId: string, body: { texto?: string; tags?: string[] }) =>
-    request<Post>(`/posts/user/${userId}/post/${postId}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    }),
-
-  addPostImage: (userId: string, postId: string, url_image: string) =>
-    request<PostImage>(`/post-images/user/${userId}/post/${postId}/images`, {
-      method: "POST",
-      body: JSON.stringify({ url_image }),
-    }),
-  deletePostImage: (userId: string, postId: string, imageId: string) =>
-    request<void>(`/post-images/user/${userId}/post/${postId}/images/${imageId}`, {
-      method: "DELETE",
-    }),
-
-  deletePost: (postId: string) =>
-    request<void>(`/posts/${postId}`, { method: "DELETE" }),
-
-  updateComment: (userId: string, postId: string, commentId: string, texto: string) =>
-    request<Comment>(`/comments/user/${userId}/post/${postId}/${commentId}`, {
-      method: "PUT",
-      body: JSON.stringify({ texto }),
-    }),
+    request<{ message: string }>(
+      `/comments/user/${userId}/post/${postId}`,
+      { method: "POST", body: JSON.stringify({ texto }) }
+    ),
+  updateComment: (
+    userId: string,
+    postId: string,
+    commentId: string,
+    texto: string
+  ) =>
+    request<{ message: string }>(
+      `/comments/user/${userId}/post/${postId}/${commentId}`,
+      { method: "PUT", body: JSON.stringify({ texto }) }
+    ),
   deleteComment: (userId: string, postId: string, commentId: string) =>
-    request<void>(`/comments/user/${userId}/post/${postId}/${commentId}`, {
-      method: "DELETE",
-    }),
+    request<{ message: string }>(
+      `/comments/user/${userId}/post/${postId}/${commentId}`,
+      { method: "DELETE" }
+    ),
+
+  // post images
+  getPostImages: (userId: string, postId: string) =>
+    request<PostImage[]>(
+      `/post-images/user/${userId}/post/${postId}/images`
+    ),
+  createPostImage: (userId: string, postId: string, url_image: string) =>
+    request<PostImage>(
+      `/post-images/user/${userId}/post/${postId}/images`,
+      { method: "POST", body: JSON.stringify({ url_image }) }
+    ),
+  deletePostImage: (userId: string, postId: string, imageId: string) =>
+    request<{ message: string }>(
+      `/post-images/user/${userId}/post/${postId}/images/${imageId}`,
+      { method: "DELETE" }
+    ),
 };

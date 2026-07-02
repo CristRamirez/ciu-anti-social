@@ -1,32 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { Modal } from "./Modal";
 import type { User } from "../types";
 
-interface SearchUsersProps {
+interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-export function SearchUsers({ open, onClose }: SearchUsersProps) {
+export function SearchUsers({ open, onClose }: Props) {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
   const [query, setQuery] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    setQuery("");
-    api.getUsers()
-      .then((data) => setUsers(data))
-      .catch(() => setUsers([]));
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    setLoading(true);
+    api
+      .getUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
   }, [open]);
 
-  const filtered = query.trim()
-    ? users.filter((u) => u.nickname.toLowerCase().includes(query.toLowerCase()))
-    : users.slice(0, 10);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return users.slice(0, 10);
+    return users.filter((u) => u.nickname.toLowerCase().includes(q)).slice(0, 20);
+  }, [users, query]);
 
-  const handleClick = (id: string) => {
+  const go = (id: string) => {
     onClose();
     navigate(`/u/${id}`);
   };
@@ -34,28 +42,30 @@ export function SearchUsers({ open, onClose }: SearchUsersProps) {
   return (
     <Modal open={open} onClose={onClose} title="Buscar usuarios">
       <input
-        className="search-input"
-        placeholder="Buscar por nickname..."
+        autoFocus
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        autoFocus
+        placeholder="Escribí un nickname..."
+        className="search-input"
       />
-      {filtered.length === 0 ? (
-        <p className="muted">Sin resultados.</p>
-      ) : (
-        <ul className="search-results">
-          {filtered.map((u) => (
-            <li key={u._id}>
-              <button type="button" className="search-result-item" onClick={() => handleClick(u._id)}>
-                <div className="post-avatar" aria-hidden>
-                  {u.nickname.charAt(0).toUpperCase()}
-                </div>
-                <span className="post-nick">@{u.nickname}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      {loading && <div className="muted small">Cargando...</div>}
+      {!loading && filtered.length === 0 && (
+        <div className="muted small">Sin resultados.</div>
       )}
+      <ul className="search-list">
+        {filtered.map((u) => (
+          <li key={u._id}>
+            <button
+              type="button"
+              className="search-item"
+              onClick={() => go(u._id)}
+            >
+              <div className="avatar small">{u.nickname[0].toUpperCase()}</div>
+              <span className="users-nick">@{u.nickname}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </Modal>
   );
 }

@@ -79,12 +79,15 @@ export function Register() {
       // Solo se envía el nickname al backend. Nombre/apellido/fecha son mock client-side.
       const user = await api.createUser(nickname.trim());
       setOk("Cuenta creada. Te logueamos...");
-      login(user);
       success("Cuenta creada exitosamente");
+      login(user);
       setTimeout(() => navigate("/"), 600);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "No se pudo crear el usuario";
-      setServerError(msg);
+      const raw = err instanceof Error ? err.message : "No se pudo crear el usuario";
+      const friendly = /E11000|duplicate key/i.test(raw)
+        ? "Ese nickname ya está en uso"
+        : raw;
+      setServerError(friendly);
     } finally {
       setLoading(false);
     }

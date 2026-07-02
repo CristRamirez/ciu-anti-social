@@ -1,172 +1,179 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../context/ToastContext";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { Modal } from "./Modal";
-import type { Theme } from "../context/ThemeContext";
+import { ConfirmDialog } from "./ConfirmDialog";
 
-interface SettingsDialogProps {
+type Tab = "cuenta" | "app";
+
+interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-type Tab = "cuenta" | "aplicacion";
-
-export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
-  const { user, logout, updateUser } = useAuth();
+export function SettingsDialog({ open, onClose }: Props) {
+  const { user, updateUser, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const { success } = useToast();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("cuenta");
-  const [editingNick, setEditingNick] = useState(false);
-  const [nickValue, setNickValue] = useState(user?.nickname ?? "");
-  const [nickSaving, setNickSaving] = useState(false);
-  const [nickError, setNickError] = useState("");
+
+  const [nickname, setNickname] = useState(user?.nickname ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const startEditNick = () => {
-    setNickValue(user?.nickname ?? "");
-    setNickError("");
-    setEditingNick(true);
-  };
-
-  const cancelEditNick = () => {
-    setEditingNick(false);
-    setNickError("");
-  };
-
-  const saveNick = async () => {
-    if (!user || !nickValue.trim()) return;
-    setNickSaving(true);
-    setNickError("");
-    try {
-      const updated = await api.updateUser(user._id, nickValue.trim());
-      updateUser({ nickname: updated.nickname });
-      setEditingNick(false);
-      success("Nickname actualizado");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (/E11000|duplicate key/i.test(msg)) {
-        setNickError("Ese nickname ya esta en uso");
-      } else {
-        setNickError(msg || "Error al guardar");
-      }
-    } finally {
-      setNickSaving(false);
-    }
-  };
-
-  const handleNickKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") saveNick();
-    if (e.key === "Escape") cancelEditNick();
-  };
-
-  const handleSetTheme = (next: Theme) => {
-    if (next === theme) return;
-    setTheme(next);
-    success(next === "light" ? "Tema claro activado" : "Tema oscuro activado");
-  };
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    setDeleting(true);
+    setDeletingAccount(true);
     try {
       await api.deleteUser(user._id);
-      setConfirmDeleteOpen(false);
+      success("Cuenta eliminada");
       logout();
+      setConfirmDeleteOpen(false);
+      onClose();
       navigate("/register");
     } catch (err) {
-      setDeleting(false);
-      setNickError(err instanceof Error ? err.message : "No se pudo eliminar la cuenta");
+      alert(err instanceof Error ? err.message : "No se pudo eliminar");
+      setDeletingAccount(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      setNickname(user?.nickname ?? "");
+      setError(null);
+      setTab("cuenta");
+    }
+  }, [open, user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    const value = nickname.trim();
+    if (!value) {
+      setError("El nickname no puede estar vacío.");
+      return;
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(value)) {
+      setError("Solo letras y números, sin espacios.");
+      return;
+    }
+    if (value.length > 20) {
+      setError("Máximo 20 caracteres.");
+      return;
+    }
+    if (value === user.nickname) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await api.updateUser(user._id, value);
+      updateUser({ nickname: updated.nickname });
+      success("Nickname modificado exitosamente");
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "No se pudo actualizar";
+      const friendly = /E11000|duplicate key/i.test(raw)
+        ? "Ese nickname ya está en uso"
+        : raw;
+      setError(friendly);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <Modal open={open} onClose={onClose} title="Ajustes">
-      <div className="settings-dialog">
-        <div className="settings-dialog-tabs">
+      <div className="settings-layout">
+        <nav className="settings-tabs">
           <button
             type="button"
-            className={tab === "cuenta" ? "settings-dialog-tab active" : "settings-dialog-tab"}
+            className={`settings-tab ${tab === "cuenta" ? "active" : ""}`}
             onClick={() => setTab("cuenta")}
           >
             Cuenta
           </button>
           <button
             type="button"
-            className={tab === "aplicacion" ? "settings-dialog-tab active" : "settings-dialog-tab"}
-            onClick={() => setTab("aplicacion")}
+            className={`settings-tab ${tab === "app" ? "active" : ""}`}
+            onClick={() => setTab("app")}
           >
-            Aplicacion
+            Aplicación
           </button>
-        </div>
+        </nav>
 
-        <div className="settings-dialog-content">
+        <div className="settings-panel">
           {tab === "cuenta" && (
-            <div className="settings-dialog-section">
-              <label className="settings-dialog-label">Nickname</label>
-              {editingNick ? (
-                <div className="nick-row">
-                  <input
-                    className="nick-input"
-                    value={nickValue}
-                    onChange={(e) => setNickValue(e.target.value)}
-                    onKeyDown={handleNickKeyDown}
-                    disabled={nickSaving}
-                    autoFocus
-                  />
-                  <button type="button" className="icon-btn" onClick={saveNick} disabled={nickSaving} title="Guardar">
-                    ✓
-                  </button>
-                  <button type="button" className="icon-btn" onClick={cancelEditNick} disabled={nickSaving} title="Cancelar">
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <div className="nick-row">
-                  <span className="profile-nick">@{user?.nickname}</span>
-                  <button type="button" className="icon-btn" onClick={startEditNick} title="Editar nickname">
-                    ✏️
-                  </button>
-                </div>
-              )}
-              {nickError && <span className="nick-error">{nickError}</span>}
-
-              <div className="settings-danger-zone">
-                <label className="settings-dialog-label">Zona de peligro</label>
+            <div className="settings-section">
+              <h3>Editar nickname</h3>
+              <div className="edit-profile-nick">
+                <span className="nick-at">@</span>
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  maxLength={20}
+                  disabled={saving}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSave();
+                  }}
+                />
                 <button
                   type="button"
-                  className="btn btn-danger"
-                  onClick={() => setConfirmDeleteOpen(true)}
+                  className="icon-btn small"
+                  onClick={handleSave}
+                  disabled={saving}
+                  title="Guardar"
+                  aria-label="Guardar"
                 >
-                  Eliminar cuenta
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                 </button>
               </div>
+              {error && <div className="alert alert-error">{error}</div>}
+
+              <hr className="settings-divider" />
+
+              <h3 className="danger-zone-title">Zona de peligro</h3>
+              <p className="muted small">
+                Al eliminar tu cuenta perdés acceso a tus publicaciones.
+              </p>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => setConfirmDeleteOpen(true)}
+              >
+                Eliminar cuenta
+              </button>
             </div>
           )}
 
-          {tab === "aplicacion" && (
-            <div className="settings-dialog-section">
-              <label className="settings-dialog-label">Tema</label>
-              <div className="theme-picker">
+          {tab === "app" && (
+            <div className="settings-section">
+              <h3>Tema</h3>
+              <div className="theme-options">
                 <button
                   type="button"
-                  className={theme === "light" ? "theme-card active" : "theme-card"}
-                  onClick={() => handleSetTheme("light")}
+                  className={`theme-option ${theme === "light" ? "active" : ""}`}
+                  onClick={() => setTheme("light")}
                 >
-                  <span className="theme-card-swatch theme-card-swatch-light" />
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                  </svg>
                   Claro
                 </button>
                 <button
                   type="button"
-                  className={theme === "dark" ? "theme-card active" : "theme-card"}
-                  onClick={() => handleSetTheme("dark")}
+                  className={`theme-option ${theme === "dark" ? "active" : ""}`}
+                  onClick={() => setTheme("dark")}
                 >
-                  <span className="theme-card-swatch theme-card-swatch-dark" />
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
                   Oscuro
                 </button>
               </div>
@@ -178,12 +185,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       <ConfirmDialog
         open={confirmDeleteOpen}
         title="Eliminar cuenta"
-        message="¿Seguro? Esta accion no se puede deshacer"
+        message="¿Seguro que querés eliminar tu cuenta? Esta acción no se puede deshacer."
         confirmLabel="Eliminar"
         danger
-        loading={deleting}
+        loading={deletingAccount}
+        onCancel={() => {
+          if (!deletingAccount) setConfirmDeleteOpen(false);
+        }}
         onConfirm={handleDeleteAccount}
-        onCancel={() => setConfirmDeleteOpen(false)}
       />
     </Modal>
   );

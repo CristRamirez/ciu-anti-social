@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-export type Theme = "dark" | "light";
+type Theme = "light" | "dark";
 
 interface ThemeState {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  toggle: () => void;
+  setTheme: (t: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeState | undefined>(undefined);
@@ -13,8 +14,9 @@ const STORAGE_KEY = "antisocial.theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "light" ? "light" : "dark";
+    const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    if (saved === "light" || saved === "dark") return saved;
+    return "dark";
   });
 
   useEffect(() => {
@@ -22,10 +24,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
-  const setTheme = (next: Theme) => setThemeState(next);
+  const toggle = () =>
+    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
+  const setTheme = (t: Theme) => setThemeState(t);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, toggle, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

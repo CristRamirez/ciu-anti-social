@@ -1,26 +1,25 @@
 import { useEffect } from "react";
-import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
-interface ModalProps {
+interface Props {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
 }
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, children }: Props) {
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
+    const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
     };
   }, [open, onClose]);
 
@@ -29,18 +28,23 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-box card"
-        onClick={(e) => e.stopPropagation()}
+        className="modal"
         role="dialog"
-        aria-modal
-        aria-labelledby={title ? "modal-title" : undefined}
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
       >
-        {title && (
-          <h2 id="modal-title" className="modal-title">
-            {title}
-          </h2>
-        )}
-        {children}
+        <header className="modal-head">
+          <h2>{title}</h2>
+          <button
+            type="button"
+            className="modal-close"
+            onClick={onClose}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </header>
+        <div className="modal-body">{children}</div>
       </div>
     </div>,
     document.body

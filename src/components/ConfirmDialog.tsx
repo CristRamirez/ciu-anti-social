@@ -1,10 +1,11 @@
 import { Modal } from "./Modal";
 
-interface ConfirmDialogProps {
+interface Props {
   open: boolean;
-  title: string;
+  title?: string;
   message: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   danger?: boolean;
   loading?: boolean;
   onConfirm: () => void;
@@ -13,17 +14,18 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   open,
-  title,
+  title = "Confirmar",
   message,
   confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
   danger = false,
   loading = false,
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
+}: Props) {
   return (
     <Modal open={open} onClose={onCancel} title={title}>
-      <p style={{ margin: 0 }}>{message}</p>
+      <p className="confirm-msg">{message}</p>
       <div className="confirm-actions">
         <button
           type="button"
@@ -31,7 +33,7 @@ export function ConfirmDialog({
           onClick={onCancel}
           disabled={loading}
         >
-          Cancelar
+          {cancelLabel}
         </button>
         <button
           type="button"

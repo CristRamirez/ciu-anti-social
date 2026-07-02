@@ -1,34 +1,36 @@
 import { useEffect } from "react";
-import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext";
+
+const PUBLIC_PATHS = new Set(["/login", "/register"]);
 
 export function AuthGate() {
   const { user } = useAuth();
   const { pathname } = useLocation();
 
-  const isAuthRoute = pathname === "/login" || pathname === "/register";
-  const show = !user && !isAuthRoute;
+  const blocked = !user && !PUBLIC_PATHS.has(pathname);
 
   useEffect(() => {
-    if (!show) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (blocked) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = "";
     };
-  }, [show]);
+  }, [blocked]);
 
-  if (!show) return null;
+  if (!blocked) return null;
 
   return createPortal(
     <div className="auth-gate-backdrop">
-      <div className="card auth-gate-card" role="dialog" aria-modal>
-        <h2 className="auth-gate-title">Iniciá sesión</h2>
-        <p className="muted">Necesitás una cuenta para continuar.</p>
+      <div className="auth-gate-card" role="dialog" aria-modal="true">
+        <h2>Iniciá sesión</h2>
+        <p className="muted">
+          Necesitás una cuenta para navegar la red. Es gratis y rápido.
+        </p>
         <div className="auth-gate-actions">
-          <Link to="/login" className="btn btn-primary">Login</Link>
-          <Link to="/register" className="btn btn-ghost">Register</Link>
+          <Link to="/login" className="btn btn-primary">Iniciar sesión</Link>
+          <Link to="/register" className="btn btn-ghost">Crear cuenta</Link>
         </div>
       </div>
     </div>,

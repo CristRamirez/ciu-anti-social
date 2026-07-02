@@ -1,110 +1,113 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import type { Tag } from "../types";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { Modal } from "./Modal";
+import type { Tag } from "../types";
 
-function getTagError(err: unknown) {
-  const message = err instanceof Error ? err.message : "";
-  if (/duplicate|E11000|existe|duplicado/i.test(message)) return "Ese tag ya existe";
-  return message || "No se pudo guardar el tag";
+function friendlyErr(raw: string): string {
+  if (/E11000|duplicate key/i.test(raw)) return "Ese tag ya existe";
+  return raw;
 }
 
 export function SettingsFab() {
+  const { user } = useAuth();
   const { success } = useToast();
   const [open, setOpen] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [newTag, setNewTag] = useState("");
-  const [error, setError] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
+  const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = async () => {
     setLoading(true);
-    setError("");
-
-    api
-      .getTags()
-      .then(setTags)
-      .catch((err) => setError(err instanceof Error ? err.message : "No se pudieron cargar las etiquetas"))
-      .finally(() => setLoading(false));
-  }, [open]);
-
-  const resetEdit = () => {
-    setEditingId(null);
-    setEditingValue("");
-  };
-
-  const createTag = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const nombre = newTag.trim();
-    if (!nombre) return;
-
-    setSaving(true);
-    setError("");
-
     try {
-      const created = await api.createTag(nombre);
-      setTags((prev) => [...prev, created]);
-      setNewTag("");
-      success("Etiqueta creada");
-    } catch (err) {
-      setError(getTagError(err));
+      const ts = await api.getTags();
+      setTags(ts);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const startEdit = (tag: Tag) => {
-    setError("");
-    setEditingId(tag._id);
-    setEditingValue(tag.nombre);
+  useEffect(() => {
+    if (open) load();
+  }, [open]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = newName.trim();
+    if (!value) {
+      setCreateError("Ingresá un nombre.");
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await api.createTag(value);
+      setTags((prev) => [...prev, created]);
+      setNewName("");
+      success("Tag creado");
+    } catch (err) {
+      setCreateError(friendlyErr(err instanceof Error ? err.message : "Error"));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const startEdit = (t: Tag) => {
+    setEditId(t._id);
+    setEditName(t.nombre);
+    setEditError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setEditError(null);
   };
 
   const saveEdit = async (id: string) => {
-    const nombre = editingValue.trim();
-    if (!nombre) return;
-
-    setSaving(true);
-    setError("");
-
+    const value = editName.trim();
+    if (!value) {
+      setEditError("No puede estar vacío.");
+      return;
+    }
+    setSavingId(id);
+    setEditError(null);
     try {
-      const updated = await api.updateTag(id, nombre);
-      setTags((prev) => prev.map((tag) => (tag._id === id ? updated : tag)));
-      resetEdit();
-      success("Etiqueta actualizada");
+      const updated = await api.updateTag(id, value);
+      setTags((prev) => prev.map((t) => (t._id === id ? updated : t)));
+      setEditId(null);
+      success("Tag actualizado");
     } catch (err) {
-      setError(getTagError(err));
+      setEditError(friendlyErr(err instanceof Error ? err.message : "Error"));
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
   };
 
-  const deleteTag = async () => {
-    if (!deleteId) return;
-
-    setDeleting(true);
-    setError("");
-
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar este tag?")) return;
+    setDeletingId(id);
     try {
-      await api.deleteTag(deleteId);
-      setTags((prev) => prev.filter((tag) => tag._id !== deleteId));
-      setDeleteId(null);
-      success("Etiqueta eliminada");
+      await api.deleteTag(id);
+      setTags((prev) => prev.filter((t) => t._id !== id));
+      success("Tag eliminado");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo eliminar la etiqueta");
+      alert(err instanceof Error ? err.message : "No se pudo eliminar");
     } finally {
-      setDeleting(false);
+      setDeletingId(null);
     }
   };
+
+  if (!user) return null;
 
   return (
     <>
@@ -112,90 +115,121 @@ export function SettingsFab() {
         type="button"
         className="settings-fab"
         onClick={() => setOpen(true)}
-        aria-label="Ajustes"
-        title="Ajustes"
+        title="Configuración"
+        aria-label="Configuración"
       >
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
-          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="2" />
-          <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 0 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66v.06a2.1 2.1 0 0 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 0 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1H2.9a2.1 2.1 0 0 1 0-4.2h.06A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 0 1 2.97-2.97l.04.04A1.8 1.8 0 0 0 9.2 3.4a1.8 1.8 0 0 0 1.1-1.66V1.7a2.1 2.1 0 0 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 0 1 2.97 2.97l-.04.04A1.8 1.8 0 0 0 19.4 8c.16.5.54.9 1.04 1.04.2.06.42.08.62.08h.04a2.1 2.1 0 0 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Etiquetas">
-        <form className="settings-tag-form" onSubmit={createTag}>
+        <form onSubmit={handleCreate} className="tag-create">
           <input
-            className="settings-tag-input"
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            placeholder="Nueva etiqueta"
-            disabled={saving}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nuevo tag (sin espacios)"
+            maxLength={20}
+            disabled={creating}
           />
-          <button type="submit" className="btn btn-primary" disabled={saving || !newTag.trim()}>
-            Crear
+          <button
+            type="submit"
+            className="btn btn-primary btn-small"
+            disabled={creating || !newName.trim()}
+          >
+            {creating ? "..." : "Crear"}
           </button>
         </form>
+        {createError && <div className="alert alert-error">{createError}</div>}
 
-        {error && <div className="alert alert-error">{error}</div>}
-        {loading && <p className="muted">Cargando...</p>}
+        {loading && <div className="muted small">Cargando...</div>}
+        {!loading && tags.length === 0 && (
+          <div className="muted small">No hay etiquetas todavía.</div>
+        )}
 
-        {!loading && (
-          <ul className="settings-tag-list">
-            {tags.map((tag) => (
-              <li key={tag._id} className="settings-tag-item">
-                {editingId === tag._id ? (
+        <ul className="tag-admin-list">
+          {tags.map((t) => {
+            const isEditing = editId === t._id;
+            return (
+              <li key={t._id} className="tag-admin-item">
+                {isEditing ? (
                   <>
                     <input
-                      className="settings-tag-input"
-                      value={editingValue}
-                      onChange={(e) => setEditingValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") saveEdit(tag._id);
-                        if (e.key === "Escape") resetEdit();
-                      }}
-                      disabled={saving}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      maxLength={20}
                       autoFocus
+                      disabled={savingId === t._id}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(t._id);
+                        if (e.key === "Escape") cancelEdit();
+                      }}
                     />
                     <button
                       type="button"
-                      className="settings-icon-btn"
-                      onClick={() => saveEdit(tag._id)}
-                      disabled={saving || !editingValue.trim()}
+                      className="icon-btn small"
+                      onClick={() => saveEdit(t._id)}
+                      disabled={savingId === t._id}
                       title="Guardar"
+                      aria-label="Guardar"
                     >
-                      ✓
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     </button>
-                    <button type="button" className="settings-icon-btn" onClick={resetEdit} disabled={saving} title="Cancelar">
-                      ×
+                    <button
+                      type="button"
+                      className="icon-btn small"
+                      onClick={cancelEdit}
+                      disabled={savingId === t._id}
+                      title="Cancelar"
+                      aria-label="Cancelar"
+                    >
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
                     </button>
                   </>
                 ) : (
                   <>
-                    <span className="settings-tag-name">#{tag.nombre}</span>
-                    <button type="button" className="settings-icon-btn" onClick={() => startEdit(tag)} title="Editar">
-                      ✎
+                    <span className="tag">#{t.nombre}</span>
+                    <button
+                      type="button"
+                      className="icon-btn small"
+                      onClick={() => startEdit(t)}
+                      title="Editar"
+                      aria-label="Editar"
+                    >
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                      </svg>
                     </button>
-                    <button type="button" className="settings-icon-btn settings-icon-btn-danger" onClick={() => setDeleteId(tag._id)} title="Eliminar">
-                      🗑
+                    <button
+                      type="button"
+                      className="icon-btn small danger"
+                      onClick={() => handleDelete(t._id)}
+                      disabled={deletingId === t._id}
+                      title="Eliminar"
+                      aria-label="Eliminar"
+                    >
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
                     </button>
                   </>
                 )}
               </li>
-            ))}
-            {tags.length === 0 && <li className="muted">No hay etiquetas todavía.</li>}
-          </ul>
-        )}
+            );
+          })}
+        </ul>
+        {editError && <div className="alert alert-error">{editError}</div>}
       </Modal>
-
-      <ConfirmDialog
-        open={deleteId !== null}
-        title="Eliminar etiqueta"
-        message="¿Seguro que querés eliminar esta etiqueta?"
-        confirmLabel="Eliminar"
-        danger
-        loading={deleting}
-        onConfirm={deleteTag}
-        onCancel={() => setDeleteId(null)}
-      />
     </>
   );
 }

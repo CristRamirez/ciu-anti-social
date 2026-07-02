@@ -1,185 +1,197 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { EmojiPicker } from "./EmojiPicker";
 import type { Post, Tag } from "../types";
 
-interface PostComposerProps {
-  onCreated?: (post: Post) => void;
+interface Props {
+  onCreated: (post: Post) => void;
 }
 
-export function PostComposer({ onCreated }: PostComposerProps) {
+export function PostComposer({ onCreated }: Props) {
   const { user } = useAuth();
-  const { success, info } = useToast();
+  const { success } = useToast();
   const [texto, setTexto] = useState("");
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [tagInputOpen, setTagInputOpen] = useState(false);
-  const [tagInput, setTagInput] = useState("");
-  const [tagLoading, setTagLoading] = useState(false);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  if (!user) return null;
+  const [tagInputOpen, setTagInputOpen] = useState(false);
+  const [tagDraft, setTagDraft] = useState("");
+  const [tagAdding, setTagAdding] = useState(false);
+  const [tagError, setTagError] = useState<string | null>(null);
 
-  const placeholder = `¿Qué pensás, @${user.nickname}?`;
+  const setImageAt = (i: number, v: string) =>
+    setImages((p) => p.map((u, idx) => (idx === i ? v : u)));
+
+  const addTag = async () => {
+    const value = tagDraft.trim();
+    if (!value) {
+      setTagError("Escribí un nombre.");
+      return;
+    }
+    if (selectedTags.some((t) => t.nombre.toLowerCase() === value.toLowerCase())) {
+      setTagError("Ya lo agregaste.");
+      return;
+    }
+    setTagAdding(true);
+    setTagError(null);
+    try {
+      const all = await api.getTags();
+      let tag = all.find((t) => t.nombre.toLowerCase() === value.toLowerCase());
+      if (!tag) {
+        tag = await api.createTag(value);
+      }
+      setSelectedTags((prev) => [...prev, tag!]);
+      setTagDraft("");
+      setTagInputOpen(false);
+    } catch (err) {
+      setTagError(err instanceof Error ? err.message : "No se pudo agregar");
+    } finally {
+      setTagAdding(false);
+    }
+  };
+
+  const removeTag = (id: string) =>
+    setSelectedTags((prev) => prev.filter((t) => t._id !== id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const value = texto.trim();
-    if (!value) {
+    if (!user) return;
+    if (!texto.trim()) {
       setError("Escribí algo antes de publicar.");
       return;
     }
     setSubmitting(true);
     try {
-      const tagIds = tags.map((t) => t._id);
-      const created = await api.createPost(user._id, value, tagIds);
-      const urls = imageUrls.map((u) => u.trim()).filter(Boolean);
+      const post = await api.createPost(
+        user._id,
+        texto.trim(),
+        selectedTags.map((t) => t._id)
+      );
+      const urls = images.map((u) => u.trim()).filter(Boolean);
       for (const url of urls) {
-        await api.createPostImage(created._id, url);
+        try {
+          await api.createPostImage(user._id, post._id, url);
+        } catch {
+          /* ignore individual failure */
+        }
       }
       setTexto("");
-      setTags([]);
-      setImageUrls([]);
-      onCreated?.(created);
+      setSelectedTags([]);
+      setImages([]);
       success("Post creado exitosamente");
+      onCreated(post);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al publicar");
+      setError(err instanceof Error ? err.message : "No se pudo publicar");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const addImageInput = () => {
-    setImageUrls((prev) => [...prev, ""]);
-    info("Imagen agregada");
-  };
+  if (!user) {
+    return (
+      <div className="card composer-anon">
+        <span className="muted">¿Querés postear algo?</span>
+        <Link to="/login" className="btn btn-primary">Iniciar sesión</Link>
+      </div>
+    );
+  }
 
-  const updateImageUrl = (idx: number, value: string) => {
-    setImageUrls((prev) => prev.map((u, i) => (i === idx ? value : u)));
-  };
-
-  const removeImageUrl = (idx: number) => {
-  setImageUrls((prev) => prev.filter((_, i) => i !== idx));
-  info("Imagen eliminada");
-  };
-
-  const removeTag = (id: string) => {
-    setTags((prev) => prev.filter((t) => t._id !== id));
-  };
-
-  const confirmTag = async () => {
-    const nombre = tagInput.trim();
-    if (!nombre) {
-      setTagInputOpen(false);
-      return;
-    }
-    setTagLoading(true);
-    setError(null);
-    try {
-      const all = await api.getTags();
-      const match = all.find(
-        (t) => t.nombre.toLowerCase() === nombre.toLowerCase()
-      );
-      const tag = match ?? (await api.createTag(nombre));
-      setTags((prev) =>
-        prev.some((t) => t._id === tag._id) ? prev : [...prev, tag]
-      );
-      setTagInput("");
-      setTagInputOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error con el tag");
-    } finally {
-      setTagLoading(false);
-    }
-  };
-
-  const avatarLetter = user.nickname.charAt(0).toUpperCase() || "?";
+  const initial = user.nickname[0].toUpperCase();
 
   return (
     <form className="card composer" onSubmit={handleSubmit}>
-      <div className="composer-row">
-        <div className="composer-avatar" aria-hidden>
-          {avatarLetter}
-        </div>
+      <div className="composer-top">
+        <div className="avatar">{initial}</div>
         <textarea
-          className="composer-text"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder={placeholder}
-          rows={3}
+          placeholder={`¿Qué pensás, @${user.nickname}?`}
+          rows={2}
+          maxLength={255}
         />
       </div>
 
-      <div className="composer-tags">
-        {tags.map((t) => (
-          <span key={t._id} className="composer-chip">
-            #{t.nombre}
-            <button
-              type="button"
-              className="composer-chip-x"
-              onClick={() => removeTag(t._id)}
-              aria-label={`Quitar ${t.nombre}`}
-            >
-              ×
-            </button>
-          </span>
-        ))}
-        {tagInputOpen ? (
-          <span className="composer-tag-input">
-            <input
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  confirmTag();
-                } else if (e.key === "Escape") {
-                  setTagInputOpen(false);
-                  setTagInput("");
-                }
-              }}
-              placeholder="nombre tag"
-              autoFocus
-              disabled={tagLoading}
-            />
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={confirmTag}
-              disabled={tagLoading}
-            >
-              OK
-            </button>
-          </span>
-        ) : (
-          <button
-            type="button"
-            className="composer-tag-add"
-            onClick={() => setTagInputOpen(true)}
-          >
-            +
-          </button>
-        )}
-      </div>
+      <div className="composer-extra">
+        <label>Etiquetas</label>
+          <div className="tag-picker">
+            {selectedTags.map((t) => (
+              <span key={t._id} className="tag-chip active">
+                #{t.nombre}
+                <button
+                  type="button"
+                  className="tag-chip-remove"
+                  onClick={() => removeTag(t._id)}
+                  aria-label={`Quitar ${t.nombre}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {tagInputOpen ? (
+              <span className="tag-inline-add">
+                <input
+                  value={tagDraft}
+                  onChange={(e) => setTagDraft(e.target.value)}
+                  placeholder="nombre"
+                  maxLength={20}
+                  autoFocus
+                  disabled={tagAdding}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addTag();
+                    }
+                    if (e.key === "Escape") {
+                      setTagInputOpen(false);
+                      setTagDraft("");
+                      setTagError(null);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="tag-inline-ok"
+                  onClick={addTag}
+                  disabled={tagAdding}
+                  aria-label="Agregar"
+                >
+                  ✓
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="tag-chip tag-chip-add"
+                onClick={() => {
+                  setTagInputOpen(true);
+                  setTagError(null);
+                }}
+                aria-label="Agregar etiqueta"
+              >
+                +
+              </button>
+            )}
+          </div>
+          {tagError && <div className="alert alert-error">{tagError}</div>}
 
-      <div className="composer-images">
-        {imageUrls.map((url, idx) => (
-          <div key={idx} className="composer-image-row">
+        <label>URLs de imágenes</label>
+        {images.map((url, i) => (
+          <div className="image-row" key={i}>
             <input
-              className="composer-image-input"
               value={url}
-              onChange={(e) => updateImageUrl(idx, e.target.value)}
+              onChange={(e) => setImageAt(i, e.target.value)}
               placeholder="https://..."
-              type="url"
             />
             <button
               type="button"
-              className="btn btn-ghost"
-              onClick={() => removeImageUrl(idx)}
+              className="btn btn-ghost btn-small"
+              onClick={() => setImages((p) => p.filter((_, idx) => idx !== i))}
             >
               Quitar
             </button>
@@ -187,8 +199,8 @@ export function PostComposer({ onCreated }: PostComposerProps) {
         ))}
         <button
           type="button"
-          className="btn btn-ghost composer-image-add"
-          onClick={addImageInput}
+          className="btn btn-ghost btn-small"
+          onClick={() => setImages((p) => [...p, ""])}
         >
           + Imagen
         </button>
@@ -196,15 +208,18 @@ export function PostComposer({ onCreated }: PostComposerProps) {
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="composer-actions">
-        <EmojiPicker onSelect={(emoji) => setTexto((prev) => prev + emoji)} />
-        <button
-          type="submit"
-          className="btn btn-primary btn-pill"
-          disabled={submitting || !texto.trim()}
-        >
-          {submitting ? "Publicando..." : "Publicar"}
-        </button>
+      <div className="composer-foot">
+        <EmojiPicker
+          onSelect={(em) =>
+            setTexto((t) => (t.length + em.length <= 255 ? t + em : t))
+          }
+        />
+        <div className="composer-foot-right" style={{ marginLeft: "auto" }}>
+          <span className="muted small">{texto.length}/255</span>
+          <button className="btn btn-primary btn-pill" disabled={submitting}>
+            {submitting ? "Publicando..." : "Publicar"}
+          </button>
+        </div>
       </div>
     </form>
   );
