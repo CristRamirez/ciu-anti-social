@@ -34,6 +34,7 @@ export function SettingsDialog({ open, onClose }: Props) {
     try {
       await api.deleteUser(user._id);
       success("Cuenta eliminada");
+      window.dispatchEvent(new CustomEvent("users-changed"));
       logout();
       setConfirmDeleteOpen(false);
       onClose();

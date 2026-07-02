@@ -21,19 +21,36 @@ export function UsersPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .getUsers()
-      .then((all) => {
-        if (cancelled) return;
-        setTotal(all.length);
-        setUsers(shuffle(all).slice(0, 5));
-      })
-      .catch(() => !cancelled && setUsers([]))
-      .finally(() => !cancelled && setLoading(false));
+    const load = () => {
+      setLoading(true);
+      api
+        .getUsers()
+        .then((all) => {
+          if (cancelled) return;
+          const others = authUser
+            ? all.filter((u) => u._id !== authUser._id)
+            : all;
+          setTotal(others.length);
+          setUsers(shuffle(others).slice(0, 5));
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setUsers([]);
+          setTotal(0);
+        })
+        .finally(() => !cancelled && setLoading(false));
+    };
+    load();
+    const onUsersChanged = () => load();
+    window.addEventListener("users-changed", onUsersChanged);
+    window.addEventListener("focus", onUsersChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("users-changed", onUsersChanged);
+      window.removeEventListener("focus", onUsersChanged);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?._id]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -42,6 +59,7 @@ export function UsersPanel() {
         u._id === authUser._id ? { ...u, nickname: authUser.nickname } : u
       )
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?._id, authUser?.nickname]);
 
   if (!authUser) return null;

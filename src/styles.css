@@ -779,6 +779,22 @@ textarea { resize: vertical; min-height: 80px; }
   transition: background 0.15s ease, transform 0.12s ease;
 }
 .carousel-delete:hover { background: var(--danger); transform: scale(1.08); }
+.carousel-broken {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px dashed var(--border, rgba(255, 255, 255, 0.12));
+  color: var(--muted, #98a2b3);
+  border-radius: 12px;
+  padding: 12px;
+}
+.carousel-broken-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
 
 /* gallery (legacy, unused) */
 .post-gallery {

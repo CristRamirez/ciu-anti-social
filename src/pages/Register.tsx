@@ -113,6 +113,7 @@ export function Register() {
       const user = await api.createUser(nickname.trim());
       setOk("Cuenta creada. Te logueamos...");
       success("Cuenta creada exitosamente");
+      window.dispatchEvent(new CustomEvent("users-changed"));
       login(user);
       setTimeout(() => navigate("/"), 600);
     } catch (err) {
